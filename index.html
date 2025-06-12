@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>noteタイトル画像メーカー</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>noteタイトル画像メーカー</h1>
+        
+        <div class="upload-section">
+            <label for="imageUpload" class="upload-label">
+                画像をアップロード
+                <input type="file" id="imageUpload" accept="image/*">
+            </label>
+        </div>
+
+        <div class="editor-section">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="titleText">タイトルテキスト:</label>
+                    <textarea id="titleText" placeholder="タイトルを入力&#10;改行で複数行にできます" rows="3"></textarea>
+                </div>
+                
+                <div class="control-group">
+                    <label for="fontSize">フォントサイズ:</label>
+                    <input type="range" id="fontSize" min="20" max="150" value="60">
+                    <span id="fontSizeValue">60</span>px
+                </div>
+                
+                <div class="control-group">
+                    <label for="fontColor">文字色:</label>
+                    <input type="color" id="fontColor" value="#ffffff">
+                </div>
+                
+                <div class="control-group">
+                    <label for="borderColor">枠の色:</label>
+                    <input type="color" id="borderColor" value="#000000">
+                    <small>文字色を選ぶと自動で補色になります</small>
+                </div>
+                
+                <div class="control-group">
+                    <label for="borderWidth">枠の太さ:</label>
+                    <input type="range" id="borderWidth" min="0" max="50" value="0">
+                    <span id="borderWidthValue">0</span>px
+                </div>
+                
+                <div class="control-group">
+                    <label for="textPosition">文字位置:</label>
+                    <select id="textPosition">
+                        <option value="center">中央</option>
+                        <option value="top">上</option>
+                        <option value="bottom">下</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="textShadow">
+                        <input type="checkbox" id="textShadow" checked>
+                        影をつける
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="textBackground">
+                        <input type="checkbox" id="textBackground">
+                        文字に背景をつける
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="textPadding">文字背景の余白:</label>
+                    <input type="range" id="textPadding" min="5" max="50" value="20">
+                    <span id="textPaddingValue">20</span>px
+                </div>
+            </div>
+            
+            <div class="preview-section">
+                <canvas id="canvas"></canvas>
+                <div id="noImageMessage">画像をアップロードしてください</div>
+            </div>
+        </div>
+        
+        <button id="downloadBtn" class="download-btn" disabled>画像をダウンロード</button>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
