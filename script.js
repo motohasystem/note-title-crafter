@@ -16,6 +16,7 @@ const textPaddingValue = document.getElementById('textPaddingValue');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const downloadBtn = document.getElementById('downloadBtn');
+const copyImageBtn = document.getElementById('copyImageBtn');
 const copyUrlBtn = document.getElementById('copyUrlBtn');
 const noImageMessage = document.getElementById('noImageMessage');
 
@@ -144,6 +145,7 @@ function loadImage(src) {
         uploadedImage = img;
         noImageMessage.style.display = 'none';
         downloadBtn.disabled = false;
+        copyImageBtn.disabled = false;
         fitMode = 'contain';
         imageOffsetX = 0;
         imageOffsetY = 0;
@@ -454,6 +456,60 @@ downloadBtn.addEventListener('click', () => {
     link.download = 'note-title.png';
     link.href = canvas.toDataURL();
     link.click();
+});
+
+// 画像コピー処理
+copyImageBtn.addEventListener('click', async () => {
+    if (!uploadedImage) return;
+    
+    try {
+        // キャンバスをBlobに変換
+        canvas.toBlob(async (blob) => {
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                
+                // ボタンのテキストと色を一時的に変更
+                const originalText = copyImageBtn.textContent;
+                copyImageBtn.textContent = 'コピーしました！';
+                copyImageBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyImageBtn.textContent = originalText;
+                    copyImageBtn.classList.remove('copied');
+                }, 2000);
+                
+            } catch (err) {
+                // フォールバック: ダウンロードリンクを表示
+                const link = document.createElement('a');
+                link.download = 'note-title.png';
+                link.href = canvas.toDataURL();
+                link.click();
+                
+                const originalText = copyImageBtn.textContent;
+                copyImageBtn.textContent = 'ダウンロードしました';
+                
+                setTimeout(() => {
+                    copyImageBtn.textContent = originalText;
+                }, 2000);
+            }
+        }, 'image/png');
+        
+    } catch (err) {
+        // さらなるフォールバック
+        const link = document.createElement('a');
+        link.download = 'note-title.png';
+        link.href = canvas.toDataURL();
+        link.click();
+        
+        const originalText = copyImageBtn.textContent;
+        copyImageBtn.textContent = 'ダウンロードしました';
+        
+        setTimeout(() => {
+            copyImageBtn.textContent = originalText;
+        }, 2000);
+    }
 });
 
 // URLコピー処理

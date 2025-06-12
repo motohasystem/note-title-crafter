@@ -187,11 +187,11 @@ h1 {
     margin: 15px auto 0;
 }
 
-.download-btn, .copy-url-btn {
-    padding: 10px 35px;
+.download-btn, .copy-image-btn, .copy-url-btn {
+    padding: 10px 25px;
     border: none;
     border-radius: 5px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.3s;
@@ -209,6 +209,24 @@ h1 {
 .download-btn:disabled {
     background-color: #95a5a6;
     cursor: not-allowed;
+}
+
+.copy-image-btn {
+    background-color: #f39c12;
+    color: white;
+}
+
+.copy-image-btn:hover:not(:disabled) {
+    background-color: #e67e22;
+}
+
+.copy-image-btn:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.copy-image-btn.copied {
+    background-color: #27ae60;
 }
 
 .copy-url-btn {
@@ -242,7 +260,7 @@ h1 {
         align-items: center;
     }
     
-    .download-btn, .copy-url-btn {
-        width: 200px;
+    .download-btn, .copy-image-btn, .copy-url-btn {
+        width: 180px;
     }
 }
