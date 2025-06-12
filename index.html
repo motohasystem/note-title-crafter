@@ -9,13 +9,6 @@
 <body>
     <div class="container">
         <h1>noteタイトル画像メーカー</h1>
-        
-        <div class="upload-section">
-            <label for="imageUpload" class="upload-label">
-                画像をアップロード
-                <input type="file" id="imageUpload" accept="image/*">
-            </label>
-        </div>
 
         <div class="editor-section">
             <div class="controls">
@@ -32,12 +25,18 @@
                 
                 <div class="control-group">
                     <label for="fontColor">文字色:</label>
-                    <input type="color" id="fontColor" value="#ffffff">
+                    <div class="color-input-group">
+                        <input type="color" id="fontColor" value="#ffffff">
+                        <input type="text" id="fontColorHex" value="#ffffff" placeholder="#ffffff" maxlength="7">
+                    </div>
                 </div>
                 
                 <div class="control-group">
                     <label for="borderColor">枠の色:</label>
-                    <input type="color" id="borderColor" value="#000000">
+                    <div class="color-input-group">
+                        <input type="color" id="borderColor" value="#000000">
+                        <input type="text" id="borderColorHex" value="#000000" placeholder="#000000" maxlength="7">
+                    </div>
                     <small>文字色を選ぶと自動で補色になります</small>
                 </div>
                 
@@ -78,12 +77,25 @@
             </div>
             
             <div class="preview-section">
-                <canvas id="canvas"></canvas>
-                <div id="noImageMessage">画像をアップロードしてください</div>
+                <div class="upload-section">
+                    <label for="imageUpload" class="upload-label">
+                        画像をアップロード
+                        <input type="file" id="imageUpload" accept="image/*">
+                    </label>
+                    <p class="upload-hint">または、画像をコピーして Ctrl+V / Cmd+V で貼り付け</p>
+                </div>
+                
+                <div class="canvas-container">
+                    <canvas id="canvas"></canvas>
+                    <div id="noImageMessage">画像をアップロードしてください</div>
+                </div>
+                
+                <div class="button-group">
+                    <button id="downloadBtn" class="download-btn" disabled>画像をダウンロード</button>
+                    <button id="copyUrlBtn" class="copy-url-btn">設定URLをコピー</button>
+                </div>
             </div>
         </div>
-        
-        <button id="downloadBtn" class="download-btn" disabled>画像をダウンロード</button>
     </div>
     
     <script src="script.js"></script>
