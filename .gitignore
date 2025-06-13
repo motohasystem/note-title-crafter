@@ -25,3 +25,4 @@ node_modules/
 # Build output
 dist/
 build/
+.claude/settings.local.json
