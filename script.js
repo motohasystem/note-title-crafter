@@ -1,27 +1,27 @@
-const imageUpload = document.getElementById('imageUpload');
-const titleText = document.getElementById('titleText');
-const fontSize = document.getElementById('fontSize');
-const fontSizeValue = document.getElementById('fontSizeValue');
-const fontColor = document.getElementById('fontColor');
-const fontColorHex = document.getElementById('fontColorHex');
-const borderColor = document.getElementById('borderColor');
-const borderColorHex = document.getElementById('borderColorHex');
-const borderWidth = document.getElementById('borderWidth');
-const borderWidthValue = document.getElementById('borderWidthValue');
-const textPosition = document.getElementById('textPosition');
-const textShadow = document.getElementById('textShadow');
-const textBackground = document.getElementById('textBackground');
-const textPadding = document.getElementById('textPadding');
-const textPaddingValue = document.getElementById('textPaddingValue');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const downloadBtn = document.getElementById('downloadBtn');
-const copyImageBtn = document.getElementById('copyImageBtn');
-const copyUrlBtn = document.getElementById('copyUrlBtn');
-const noImageMessage = document.getElementById('noImageMessage');
+const imageUpload = document.getElementById("imageUpload");
+const titleText = document.getElementById("titleText");
+const fontSize = document.getElementById("fontSize");
+const fontSizeValue = document.getElementById("fontSizeValue");
+const fontColor = document.getElementById("fontColor");
+const fontColorHex = document.getElementById("fontColorHex");
+const borderColor = document.getElementById("borderColor");
+const borderColorHex = document.getElementById("borderColorHex");
+const borderWidth = document.getElementById("borderWidth");
+const borderWidthValue = document.getElementById("borderWidthValue");
+const textPosition = document.getElementById("textPosition");
+const textShadow = document.getElementById("textShadow");
+const textBackground = document.getElementById("textBackground");
+const textPadding = document.getElementById("textPadding");
+const textPaddingValue = document.getElementById("textPaddingValue");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const downloadBtn = document.getElementById("downloadBtn");
+const copyImageBtn = document.getElementById("copyImageBtn");
+const copyUrlBtn = document.getElementById("copyUrlBtn");
+const noImageMessage = document.getElementById("noImageMessage");
 
 let uploadedImage = null;
-let fitMode = 'contain'; // 'contain' または 'cover'
+let fitMode = "contain"; // 'contain' または 'cover'
 let imageOffsetX = 0;
 let imageOffsetY = 0;
 let isDragging = false;
@@ -30,21 +30,21 @@ let dragStartY = 0;
 let hasDragged = false;
 
 // フォントサイズスライダーの値を表示
-fontSize.addEventListener('input', (e) => {
+fontSize.addEventListener("input", (e) => {
     fontSizeValue.textContent = e.target.value;
     drawCanvas();
     saveSettingsToURL();
 });
 
 // 枠の太さスライダーの値を表示
-borderWidth.addEventListener('input', (e) => {
+borderWidth.addEventListener("input", (e) => {
     borderWidthValue.textContent = e.target.value;
     drawCanvas();
     saveSettingsToURL();
 });
 
 // 文字背景の余白スライダーの値を表示
-textPadding.addEventListener('input', (e) => {
+textPadding.addEventListener("input", (e) => {
     textPaddingValue.textContent = e.target.value;
     drawCanvas();
     saveSettingsToURL();
@@ -56,14 +56,14 @@ function getComplementaryColor(hex) {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
-    
+
     // 補色を計算
     const compR = 255 - r;
     const compG = 255 - g;
     const compB = 255 - b;
-    
+
     // RGBをHEXに変換
-    const toHex = (n) => n.toString(16).padStart(2, '0');
+    const toHex = (n) => n.toString(16).padStart(2, "0");
     return `#${toHex(compR)}${toHex(compG)}${toHex(compB)}`;
 }
 
@@ -73,7 +73,7 @@ function isValidHex(hex) {
 }
 
 // 文字色が変更されたら枠色を自動更新
-fontColor.addEventListener('input', (e) => {
+fontColor.addEventListener("input", (e) => {
     const color = e.target.value;
     fontColorHex.value = color;
     const complementary = getComplementaryColor(color);
@@ -84,13 +84,13 @@ fontColor.addEventListener('input', (e) => {
 });
 
 // 文字色HEX入力の処理
-fontColorHex.addEventListener('input', (e) => {
+fontColorHex.addEventListener("input", (e) => {
     let value = e.target.value;
-    if (!value.startsWith('#')) {
-        value = '#' + value;
+    if (!value.startsWith("#")) {
+        value = "#" + value;
     }
     e.target.value = value;
-    
+
     if (isValidHex(value)) {
         fontColor.value = value;
         const complementary = getComplementaryColor(value);
@@ -102,20 +102,20 @@ fontColorHex.addEventListener('input', (e) => {
 });
 
 // 枠色が変更された時の処理
-borderColor.addEventListener('input', (e) => {
+borderColor.addEventListener("input", (e) => {
     borderColorHex.value = e.target.value;
     drawCanvas();
     saveSettingsToURL();
 });
 
 // 枠色HEX入力の処理
-borderColorHex.addEventListener('input', (e) => {
+borderColorHex.addEventListener("input", (e) => {
     let value = e.target.value;
-    if (!value.startsWith('#')) {
-        value = '#' + value;
+    if (!value.startsWith("#")) {
+        value = "#" + value;
     }
     e.target.value = value;
-    
+
     if (isValidHex(value)) {
         borderColor.value = value;
         drawCanvas();
@@ -124,16 +124,16 @@ borderColorHex.addEventListener('input', (e) => {
 });
 
 // その他のコントロールのイベントリスナー
-titleText.addEventListener('input', drawCanvas);
-textPosition.addEventListener('change', () => {
+titleText.addEventListener("input", drawCanvas);
+textPosition.addEventListener("change", () => {
     drawCanvas();
     saveSettingsToURL();
 });
-textShadow.addEventListener('change', () => {
+textShadow.addEventListener("change", () => {
     drawCanvas();
     saveSettingsToURL();
 });
-textBackground.addEventListener('change', () => {
+textBackground.addEventListener("change", () => {
     drawCanvas();
     saveSettingsToURL();
 });
@@ -143,10 +143,10 @@ function loadImage(src) {
     const img = new Image();
     img.onload = () => {
         uploadedImage = img;
-        noImageMessage.style.display = 'none';
+        noImageMessage.style.display = "none";
         downloadBtn.disabled = false;
         copyImageBtn.disabled = false;
-        fitMode = 'contain';
+        fitMode = "contain";
         imageOffsetX = 0;
         imageOffsetY = 0;
         drawCanvas();
@@ -155,9 +155,9 @@ function loadImage(src) {
 }
 
 // 画像アップロード処理
-imageUpload.addEventListener('change', (e) => {
+imageUpload.addEventListener("change", (e) => {
     const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = (e) => {
             loadImage(e.target.result);
@@ -167,10 +167,10 @@ imageUpload.addEventListener('change', (e) => {
 });
 
 // クリップボードからの貼り付け処理
-document.addEventListener('paste', (e) => {
+document.addEventListener("paste", (e) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
+        if (items[i].type.indexOf("image") !== -1) {
             const blob = items[i].getAsFile();
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -192,80 +192,80 @@ function initCanvas() {
 // URLパラメータに設定を保存
 function saveSettingsToURL() {
     const params = new URLSearchParams();
-    params.set('fontSize', fontSize.value);
-    params.set('fontColor', fontColor.value);
-    params.set('borderColor', borderColor.value);
-    params.set('borderWidth', borderWidth.value);
-    params.set('textPosition', textPosition.value);
-    params.set('textShadow', textShadow.checked);
-    params.set('textBackground', textBackground.checked);
-    params.set('textPadding', textPadding.value);
-    params.set('fitMode', fitMode);
-    params.set('imageOffsetX', imageOffsetX);
-    params.set('imageOffsetY', imageOffsetY);
-    
-    const newUrl = window.location.pathname + '?' + params.toString();
-    window.history.replaceState({}, '', newUrl);
+    params.set("fontSize", fontSize.value);
+    params.set("fontColor", fontColor.value);
+    params.set("borderColor", borderColor.value);
+    params.set("borderWidth", borderWidth.value);
+    params.set("textPosition", textPosition.value);
+    params.set("textShadow", textShadow.checked);
+    params.set("textBackground", textBackground.checked);
+    params.set("textPadding", textPadding.value);
+    params.set("fitMode", fitMode);
+    params.set("imageOffsetX", imageOffsetX);
+    params.set("imageOffsetY", imageOffsetY);
+
+    const newUrl = window.location.pathname + "?" + params.toString();
+    window.history.replaceState({}, "", newUrl);
 }
 
 // URLパラメータから設定を読み込み
 function loadSettingsFromURL() {
     const params = new URLSearchParams(window.location.search);
-    
-    if (params.has('fontSize')) {
-        fontSize.value = params.get('fontSize');
-        fontSizeValue.textContent = params.get('fontSize');
+
+    if (params.has("fontSize")) {
+        fontSize.value = params.get("fontSize");
+        fontSizeValue.textContent = params.get("fontSize");
     }
-    
-    if (params.has('fontColor')) {
-        const color = params.get('fontColor');
+
+    if (params.has("fontColor")) {
+        const color = params.get("fontColor");
         fontColor.value = color;
         fontColorHex.value = color;
     }
-    
-    if (params.has('borderColor')) {
-        const color = params.get('borderColor');
+
+    if (params.has("borderColor")) {
+        const color = params.get("borderColor");
         borderColor.value = color;
         borderColorHex.value = color;
     }
-    
-    if (params.has('borderWidth')) {
-        borderWidth.value = params.get('borderWidth');
-        borderWidthValue.textContent = params.get('borderWidth');
+
+    if (params.has("borderWidth")) {
+        borderWidth.value = params.get("borderWidth");
+        borderWidthValue.textContent = params.get("borderWidth");
     }
-    
-    if (params.has('textPosition')) {
-        textPosition.value = params.get('textPosition');
+
+    if (params.has("textPosition")) {
+        textPosition.value = params.get("textPosition");
     }
-    
-    if (params.has('textShadow')) {
-        textShadow.checked = params.get('textShadow') === 'true';
+
+    if (params.has("textShadow")) {
+        textShadow.checked = params.get("textShadow") === "true";
     }
-    
-    if (params.has('textBackground')) {
-        textBackground.checked = params.get('textBackground') === 'true';
+
+    if (params.has("textBackground")) {
+        textBackground.checked = params.get("textBackground") === "true";
     }
-    
-    if (params.has('textPadding')) {
-        textPadding.value = params.get('textPadding');
-        textPaddingValue.textContent = params.get('textPadding');
+
+    if (params.has("textPadding")) {
+        textPadding.value = params.get("textPadding");
+        textPaddingValue.textContent = params.get("textPadding");
     }
-    
-    if (params.has('fitMode')) {
-        fitMode = params.get('fitMode');
+
+    if (params.has("fitMode")) {
+        fitMode = params.get("fitMode");
     }
-    
-    if (params.has('imageOffsetX')) {
-        imageOffsetX = parseFloat(params.get('imageOffsetX'));
+
+    if (params.has("imageOffsetX")) {
+        imageOffsetX = parseFloat(params.get("imageOffsetX"));
     }
-    
-    if (params.has('imageOffsetY')) {
-        imageOffsetY = parseFloat(params.get('imageOffsetY'));
+
+    if (params.has("imageOffsetY")) {
+        imageOffsetY = parseFloat(params.get("imageOffsetY"));
     }
 }
 
 // ページ読み込み時に初期化
-window.addEventListener('load', () => {
+window.addEventListener("load", () => {
     initCanvas();
     loadSettingsFromURL();
     drawCanvas();
@@ -278,43 +278,54 @@ function drawCanvas() {
     const canvasHeight = canvas.height;
 
     // 背景を塗りつぶし
-    ctx.fillStyle = '#f0f0f0';
+    ctx.fillStyle = "#f0f0f0";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-    
+
     if (!uploadedImage) return;
-    
+
     // フィットモードに応じてスケールを計算
     let scale, scaledWidth, scaledHeight, x, y;
-    
-    if (fitMode === 'contain') {
+
+    if (fitMode === "contain") {
         // 全体が表示されるようにフィット（高さフィット）
-        scale = Math.min(canvasWidth / uploadedImage.width, canvasHeight / uploadedImage.height);
+        scale = Math.min(
+            canvasWidth / uploadedImage.width,
+            canvasHeight / uploadedImage.height
+        );
     } else {
         // 画面を埋めるようにフィット（幅フィット）
-        scale = Math.max(canvasWidth / uploadedImage.width, canvasHeight / uploadedImage.height);
+        scale = Math.max(
+            canvasWidth / uploadedImage.width,
+            canvasHeight / uploadedImage.height
+        );
     }
-    
+
     scaledWidth = uploadedImage.width * scale;
     scaledHeight = uploadedImage.height * scale;
     x = (canvasWidth - scaledWidth) / 2 + imageOffsetX;
     y = (canvasHeight - scaledHeight) / 2 + imageOffsetY;
-    
+
     // クリッピング領域を設定
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, canvasWidth, canvasHeight);
     ctx.clip();
-    
+
     // 画像を描画
     ctx.drawImage(uploadedImage, x, y, scaledWidth, scaledHeight);
     ctx.restore();
-    
+
     // 枠を描画
     const borderWidthVal = parseInt(borderWidth.value);
     if (borderWidthVal > 0) {
         ctx.strokeStyle = borderColor.value;
         ctx.lineWidth = borderWidthVal;
-        ctx.strokeRect(borderWidthVal / 2, borderWidthVal / 2, canvas.width - borderWidthVal, canvas.height - borderWidthVal);
+        ctx.strokeRect(
+            borderWidthVal / 2,
+            borderWidthVal / 2,
+            canvas.width - borderWidthVal,
+            canvas.height - borderWidthVal
+        );
     }
 
     // テキストがある場合のみ描画
@@ -323,18 +334,18 @@ function drawCanvas() {
         // フォント設定
         const fontSizeVal = fontSize.value;
         ctx.font = `bold ${fontSizeVal}px 'Noto Sans JP', sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
 
         // テキスト位置を計算
         let textX = canvas.width / 2;
         let textY;
-        
+
         switch (textPosition.value) {
-            case 'top':
+            case "top":
                 textY = canvas.height * 0.2;
                 break;
-            case 'bottom':
+            case "bottom":
                 textY = canvas.height * 0.8;
                 break;
             default: // center
@@ -343,7 +354,7 @@ function drawCanvas() {
 
         // 影を描画
         if (textShadow.checked) {
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+            ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
             ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 3;
             ctx.shadowOffsetY = 3;
@@ -351,77 +362,95 @@ function drawCanvas() {
 
         // テキストを描画
         ctx.fillStyle = fontColor.value;
-        
+
         // 改行で分割
-        const lines = text.split('\n');
+        const lines = text.split("\n");
         const lineHeight = parseInt(fontSizeVal) * 1.2;
-        
+
         // 各行を幅に収まるように分割
         const wrappedLines = [];
         const maxWidth = canvas.width * 0.9;
-        
-        lines.forEach(line => {
-            if (line.trim() === '') {
-                wrappedLines.push('');
+
+        lines.forEach((line) => {
+            if (line.trim() === "") {
+                wrappedLines.push("");
             } else {
                 const subLines = getLines(ctx, line, maxWidth);
                 wrappedLines.push(...subLines);
             }
         });
-        
+
         // 複数行の場合は中央揃えになるよう調整
         const totalHeight = wrappedLines.length * lineHeight;
-        const startY = textY - (totalHeight / 2) + (lineHeight / 2);
-        
+        const startY = textY - totalHeight / 2 + lineHeight / 2;
+
         // 文字背景を描画
         if (textBackground.checked) {
             const padding = parseInt(textPadding.value);
             ctx.save();
-            
+
             // 各行の幅を計測して最大幅を取得
             let maxTextWidth = 0;
-            wrappedLines.forEach(line => {
-                if (line.trim() !== '') {
+            wrappedLines.forEach((line) => {
+                if (line.trim() !== "") {
                     const textWidth = ctx.measureText(line).width;
                     maxTextWidth = Math.max(maxTextWidth, textWidth);
                 }
             });
-            
+
             // 背景の描画位置とサイズを計算
             const bgX = textX - maxTextWidth / 2 - padding;
             const bgY = startY - lineHeight / 2 - padding;
             const bgWidth = maxTextWidth + padding * 2;
             const bgHeight = totalHeight + padding * 2;
             const borderRadius = 10;
-            
+
             // 角丸四角形を描画
             ctx.fillStyle = borderColor.value;
             ctx.globalAlpha = 0.8; // 少し透明にする
             ctx.beginPath();
             ctx.moveTo(bgX + borderRadius, bgY);
             ctx.lineTo(bgX + bgWidth - borderRadius, bgY);
-            ctx.arcTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + borderRadius, borderRadius);
+            ctx.arcTo(
+                bgX + bgWidth,
+                bgY,
+                bgX + bgWidth,
+                bgY + borderRadius,
+                borderRadius
+            );
             ctx.lineTo(bgX + bgWidth, bgY + bgHeight - borderRadius);
-            ctx.arcTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - borderRadius, bgY + bgHeight, borderRadius);
+            ctx.arcTo(
+                bgX + bgWidth,
+                bgY + bgHeight,
+                bgX + bgWidth - borderRadius,
+                bgY + bgHeight,
+                borderRadius
+            );
             ctx.lineTo(bgX + borderRadius, bgY + bgHeight);
-            ctx.arcTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - borderRadius, borderRadius);
+            ctx.arcTo(
+                bgX,
+                bgY + bgHeight,
+                bgX,
+                bgY + bgHeight - borderRadius,
+                borderRadius
+            );
             ctx.lineTo(bgX, bgY + borderRadius);
             ctx.arcTo(bgX, bgY, bgX + borderRadius, bgY, borderRadius);
             ctx.closePath();
             ctx.fill();
             ctx.restore();
         }
-        
+
         // テキストを描画
         ctx.fillStyle = fontColor.value;
         wrappedLines.forEach((line, index) => {
-            if (line.trim() !== '') {
-                ctx.fillText(line, textX, startY + (index * lineHeight));
+            if (line.trim() !== "") {
+                ctx.fillText(line, textX, startY + index * lineHeight);
             }
         });
-        
+
         // 影をリセット
-        ctx.shadowColor = 'transparent';
+        ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
@@ -430,82 +459,113 @@ function drawCanvas() {
 
 // テキストを改行して配列で返す
 function getLines(ctx, text, maxWidth) {
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = words[0];
+    // 日本語文字をチェック
+    const containsJapanese = (str) => {
+        return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(str);
+    };
 
-    for (let i = 1; i < words.length; i++) {
-        const word = words[i];
-        const width = ctx.measureText(currentLine + ' ' + word).width;
-        if (width < maxWidth) {
-            currentLine += ' ' + word;
-        } else {
-            lines.push(currentLine);
-            currentLine = word;
+    // スペースがない、または日本語を含む場合は文字単位で改行
+    if (!text.includes(" ") || containsJapanese(text)) {
+        const lines = [];
+        let currentLine = "";
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const testLine = currentLine + char;
+            const width = ctx.measureText(testLine).width;
+
+            if (width < maxWidth) {
+                currentLine = testLine;
+            } else {
+                if (currentLine) {
+                    lines.push(currentLine);
+                }
+                currentLine = char;
+            }
         }
+
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+
+        return lines;
+    } else {
+        // 英語など、スペースで区切られた言語は単語単位で改行
+        const words = text.split(" ");
+        const lines = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const width = ctx.measureText(currentLine + " " + word).width;
+            if (width < maxWidth) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        return lines;
     }
-    lines.push(currentLine);
-    return lines;
 }
 
 // ダウンロード処理
-downloadBtn.addEventListener('click', () => {
+downloadBtn.addEventListener("click", () => {
     if (!uploadedImage) return;
-    
-    const link = document.createElement('a');
-    link.download = 'note-title.png';
+
+    const link = document.createElement("a");
+    link.download = "note-title.png";
     link.href = canvas.toDataURL();
     link.click();
 });
 
 // 画像コピー処理
-copyImageBtn.addEventListener('click', async () => {
+copyImageBtn.addEventListener("click", async () => {
     if (!uploadedImage) return;
-    
+
     try {
         // キャンバスをBlobに変換
         canvas.toBlob(async (blob) => {
             try {
                 await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
+                    new ClipboardItem({ "image/png": blob }),
                 ]);
-                
+
                 // ボタンのテキストと色を一時的に変更
                 const originalText = copyImageBtn.textContent;
-                copyImageBtn.textContent = 'コピーしました！';
-                copyImageBtn.classList.add('copied');
-                
+                copyImageBtn.textContent = "コピーしました！";
+                copyImageBtn.classList.add("copied");
+
                 setTimeout(() => {
                     copyImageBtn.textContent = originalText;
-                    copyImageBtn.classList.remove('copied');
+                    copyImageBtn.classList.remove("copied");
                 }, 2000);
-                
             } catch (err) {
                 // フォールバック: ダウンロードリンクを表示
-                const link = document.createElement('a');
-                link.download = 'note-title.png';
+                const link = document.createElement("a");
+                link.download = "note-title.png";
                 link.href = canvas.toDataURL();
                 link.click();
-                
+
                 const originalText = copyImageBtn.textContent;
-                copyImageBtn.textContent = 'ダウンロードしました';
-                
+                copyImageBtn.textContent = "ダウンロードしました";
+
                 setTimeout(() => {
                     copyImageBtn.textContent = originalText;
                 }, 2000);
             }
-        }, 'image/png');
-        
+        }, "image/png");
     } catch (err) {
         // さらなるフォールバック
-        const link = document.createElement('a');
-        link.download = 'note-title.png';
+        const link = document.createElement("a");
+        link.download = "note-title.png";
         link.href = canvas.toDataURL();
         link.click();
-        
+
         const originalText = copyImageBtn.textContent;
-        copyImageBtn.textContent = 'ダウンロードしました';
-        
+        copyImageBtn.textContent = "ダウンロードしました";
+
         setTimeout(() => {
             copyImageBtn.textContent = originalText;
         }, 2000);
@@ -513,45 +573,44 @@ copyImageBtn.addEventListener('click', async () => {
 });
 
 // URLコピー処理
-copyUrlBtn.addEventListener('click', async () => {
+copyUrlBtn.addEventListener("click", async () => {
     try {
         await navigator.clipboard.writeText(window.location.href);
-        
+
         // ボタンのテキストと色を一時的に変更
         const originalText = copyUrlBtn.textContent;
-        copyUrlBtn.textContent = 'コピーしました！';
-        copyUrlBtn.classList.add('copied');
-        
+        copyUrlBtn.textContent = "コピーしました！";
+        copyUrlBtn.classList.add("copied");
+
         setTimeout(() => {
             copyUrlBtn.textContent = originalText;
-            copyUrlBtn.classList.remove('copied');
+            copyUrlBtn.classList.remove("copied");
         }, 2000);
-        
     } catch (err) {
         // フォールバック: テキストエリアを使用
-        const textArea = document.createElement('textarea');
+        const textArea = document.createElement("textarea");
         textArea.value = window.location.href;
         document.body.appendChild(textArea);
         textArea.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(textArea);
-        
+
         const originalText = copyUrlBtn.textContent;
-        copyUrlBtn.textContent = 'コピーしました！';
-        copyUrlBtn.classList.add('copied');
-        
+        copyUrlBtn.textContent = "コピーしました！";
+        copyUrlBtn.classList.add("copied");
+
         setTimeout(() => {
             copyUrlBtn.textContent = originalText;
-            copyUrlBtn.classList.remove('copied');
+            copyUrlBtn.classList.remove("copied");
         }, 2000);
     }
 });
 
 // キャンバスクリックでフィットモード切り替え
-canvas.addEventListener('click', (e) => {
+canvas.addEventListener("click", (e) => {
     if (!uploadedImage || hasDragged) return;
-    
-    fitMode = fitMode === 'contain' ? 'cover' : 'contain';
+
+    fitMode = fitMode === "contain" ? "cover" : "contain";
     imageOffsetX = 0;
     imageOffsetY = 0;
     drawCanvas();
@@ -559,61 +618,67 @@ canvas.addEventListener('click', (e) => {
 });
 
 // ドラッグ開始
-canvas.addEventListener('mousedown', (e) => {
-    if (!uploadedImage || fitMode === 'contain') return;
-    
+canvas.addEventListener("mousedown", (e) => {
+    if (!uploadedImage || fitMode === "contain") return;
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     isDragging = true;
     hasDragged = false;
     dragStartX = e.clientX * scaleX - imageOffsetX;
     dragStartY = e.clientY * scaleY - imageOffsetY;
-    canvas.style.cursor = 'grabbing';
+    canvas.style.cursor = "grabbing";
 });
 
 // ドラッグ中
-canvas.addEventListener('mousemove', (e) => {
+canvas.addEventListener("mousemove", (e) => {
     if (!isDragging) return;
-    
+
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
+
     const newOffsetX = e.clientX * scaleX - dragStartX;
     const newOffsetY = e.clientY * scaleY - dragStartY;
-    
+
     // 実際に移動があった場合のみドラッグとみなす
-    if (Math.abs(newOffsetX - imageOffsetX) > 2 || Math.abs(newOffsetY - imageOffsetY) > 2) {
+    if (
+        Math.abs(newOffsetX - imageOffsetX) > 2 ||
+        Math.abs(newOffsetY - imageOffsetY) > 2
+    ) {
         hasDragged = true;
     }
-    
+
     imageOffsetX = newOffsetX;
     imageOffsetY = newOffsetY;
-    
+
     // 画像が画面外に出ないように制限
     const canvasWidth = 1280;
     const canvasHeight = 670;
-    const scale = Math.max(canvasWidth / uploadedImage.width, canvasHeight / uploadedImage.height);
+    const scale = Math.max(
+        canvasWidth / uploadedImage.width,
+        canvasHeight / uploadedImage.height
+    );
     const scaledWidth = uploadedImage.width * scale;
     const scaledHeight = uploadedImage.height * scale;
-    
+
     const maxOffsetX = Math.max(0, (scaledWidth - canvasWidth) / 2);
     const maxOffsetY = Math.max(0, (scaledHeight - canvasHeight) / 2);
-    
+
     imageOffsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, imageOffsetX));
     imageOffsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, imageOffsetY));
-    
+
     drawCanvas();
     saveSettingsToURL();
 });
 
 // ドラッグ終了
-canvas.addEventListener('mouseup', () => {
+canvas.addEventListener("mouseup", () => {
     isDragging = false;
-    canvas.style.cursor = fitMode === 'cover' ? 'grab' : 'pointer';
-    
+    canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+
     // ドラッグフラグをリセット（少し遅延させる）
     setTimeout(() => {
         hasDragged = false;
@@ -621,12 +686,12 @@ canvas.addEventListener('mouseup', () => {
 });
 
 // マウスカーソルの変更
-canvas.addEventListener('mouseenter', () => {
+canvas.addEventListener("mouseenter", () => {
     if (!uploadedImage) return;
-    canvas.style.cursor = fitMode === 'cover' ? 'grab' : 'pointer';
+    canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
 });
 
-canvas.addEventListener('mouseleave', () => {
+canvas.addEventListener("mouseleave", () => {
     isDragging = false;
-    canvas.style.cursor = 'default';
+    canvas.style.cursor = "default";
 });
