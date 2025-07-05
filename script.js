@@ -19,6 +19,8 @@ const downloadBtn = document.getElementById("downloadBtn");
 const copyImageBtn = document.getElementById("copyImageBtn");
 const copyUrlBtn = document.getElementById("copyUrlBtn");
 const noImageMessage = document.getElementById("noImageMessage");
+const eyedropperBtn = document.getElementById("eyedropperBtn");
+const borderEyedropperBtn = document.getElementById("borderEyedropperBtn");
 
 let uploadedImage = null;
 let fitMode = "contain"; // 'contain' または 'cover'
@@ -28,6 +30,10 @@ let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let hasDragged = false;
+let isEyedropperMode = false;
+let isBorderEyedropperMode = false;
+let originalFontColor = "#ffffff";
+let originalBorderColor = "#000000";
 
 // フォントサイズスライダーの値を表示
 fontSize.addEventListener("input", (e) => {
@@ -606,10 +612,83 @@ copyUrlBtn.addEventListener("click", async () => {
     }
 });
 
-// キャンバスクリックでフィットモード切り替え
+// キャンバスクリックでフィットモード切り替えまたはスポイト機能
 canvas.addEventListener("click", (e) => {
     if (!uploadedImage || hasDragged) return;
 
+    // 文字色スポイトモードの場合は色を取得
+    if (isEyedropperMode) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        // キャンバスから色を取得
+        const pixelData = ctx.getImageData(x, y, 1, 1).data;
+        const r = pixelData[0];
+        const g = pixelData[1];
+        const b = pixelData[2];
+        
+        // RGBをHEXに変換
+        const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        
+        // 色を設定
+        fontColor.value = hex;
+        fontColorHex.value = hex;
+        const complementary = getComplementaryColor(hex);
+        borderColor.value = complementary;
+        borderColorHex.value = complementary;
+        
+        // スポイトモードを終了（色は確定）
+        isEyedropperMode = false;
+        eyedropperBtn.classList.remove("active");
+        canvas.classList.remove("canvas-eyedropper");
+        
+        // 新しい色を元の色として更新
+        originalFontColor = hex;
+        originalBorderColor = complementary;
+        
+        drawCanvas();
+        saveSettingsToURL();
+        return;
+    }
+    
+    // 枠色スポイトモードの場合は色を取得
+    if (isBorderEyedropperMode) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        // キャンバスから色を取得
+        const pixelData = ctx.getImageData(x, y, 1, 1).data;
+        const r = pixelData[0];
+        const g = pixelData[1];
+        const b = pixelData[2];
+        
+        // RGBをHEXに変換
+        const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        
+        // 色を設定
+        borderColor.value = hex;
+        borderColorHex.value = hex;
+        
+        // スポイトモードを終了（色は確定）
+        isBorderEyedropperMode = false;
+        borderEyedropperBtn.classList.remove("active");
+        canvas.classList.remove("canvas-eyedropper");
+        
+        // 新しい色を元の色として更新
+        originalBorderColor = hex;
+        
+        drawCanvas();
+        saveSettingsToURL();
+        return;
+    }
+
+    // 通常のフィットモード切り替え
     fitMode = fitMode === "contain" ? "cover" : "contain";
     imageOffsetX = 0;
     imageOffsetY = 0;
@@ -619,7 +698,7 @@ canvas.addEventListener("click", (e) => {
 
 // ドラッグ開始
 canvas.addEventListener("mousedown", (e) => {
-    if (!uploadedImage || fitMode === "contain") return;
+    if (!uploadedImage || fitMode === "contain" || isEyedropperMode || isBorderEyedropperMode) return;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -632,8 +711,61 @@ canvas.addEventListener("mousedown", (e) => {
     canvas.style.cursor = "grabbing";
 });
 
-// ドラッグ中
+// ドラッグ中またはスポイトプレビュー
 canvas.addEventListener("mousemove", (e) => {
+    // 文字色スポイトモードでのプレビュー
+    if (isEyedropperMode && !isDragging && uploadedImage) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        // キャンバスから色を取得
+        const pixelData = ctx.getImageData(x, y, 1, 1).data;
+        const r = pixelData[0];
+        const g = pixelData[1];
+        const b = pixelData[2];
+        
+        // RGBをHEXに変換
+        const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        
+        // プレビュー表示
+        fontColor.value = hex;
+        fontColorHex.value = hex;
+        const complementary = getComplementaryColor(hex);
+        borderColor.value = complementary;
+        borderColorHex.value = complementary;
+        
+        drawCanvas();
+        return;
+    }
+    
+    // 枠色スポイトモードでのプレビュー
+    if (isBorderEyedropperMode && !isDragging && uploadedImage) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
+        // キャンバスから色を取得
+        const pixelData = ctx.getImageData(x, y, 1, 1).data;
+        const r = pixelData[0];
+        const g = pixelData[1];
+        const b = pixelData[2];
+        
+        // RGBをHEXに変換
+        const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        
+        // プレビュー表示
+        borderColor.value = hex;
+        borderColorHex.value = hex;
+        
+        drawCanvas();
+        return;
+    }
+    
     if (!isDragging) return;
 
     const rect = canvas.getBoundingClientRect();
@@ -688,10 +820,93 @@ canvas.addEventListener("mouseup", () => {
 // マウスカーソルの変更
 canvas.addEventListener("mouseenter", () => {
     if (!uploadedImage) return;
-    canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+    if (isEyedropperMode || isBorderEyedropperMode) {
+        canvas.style.cursor = "crosshair";
+    } else {
+        canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+    }
 });
 
 canvas.addEventListener("mouseleave", () => {
     isDragging = false;
     canvas.style.cursor = "default";
+});
+
+// 文字色スポイトツール機能
+eyedropperBtn.addEventListener("click", () => {
+    if (!uploadedImage) return;
+    
+    // 他のスポイトモードを終了
+    if (isBorderEyedropperMode) {
+        isBorderEyedropperMode = false;
+        borderEyedropperBtn.classList.remove("active");
+        // 枠色を元に戻す
+        borderColor.value = originalBorderColor;
+        borderColorHex.value = originalBorderColor;
+    }
+    
+    isEyedropperMode = !isEyedropperMode;
+    
+    if (isEyedropperMode) {
+        // 元の色を保存
+        originalFontColor = fontColor.value;
+        originalBorderColor = borderColor.value;
+        
+        eyedropperBtn.classList.add("active");
+        canvas.classList.add("canvas-eyedropper");
+        canvas.style.cursor = "crosshair";
+    } else {
+        // 元の色に戻す
+        fontColor.value = originalFontColor;
+        fontColorHex.value = originalFontColor;
+        borderColor.value = originalBorderColor;
+        borderColorHex.value = originalBorderColor;
+        
+        eyedropperBtn.classList.remove("active");
+        canvas.classList.remove("canvas-eyedropper");
+        canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+        
+        drawCanvas();
+        saveSettingsToURL();
+    }
+});
+
+// 枠色スポイトツール機能
+borderEyedropperBtn.addEventListener("click", () => {
+    if (!uploadedImage) return;
+    
+    // 他のスポイトモードを終了
+    if (isEyedropperMode) {
+        isEyedropperMode = false;
+        eyedropperBtn.classList.remove("active");
+        // 文字色を元に戻す
+        fontColor.value = originalFontColor;
+        fontColorHex.value = originalFontColor;
+        // 枠色も元の補色に戻す
+        const complementary = getComplementaryColor(originalFontColor);
+        borderColor.value = complementary;
+        borderColorHex.value = complementary;
+    }
+    
+    isBorderEyedropperMode = !isBorderEyedropperMode;
+    
+    if (isBorderEyedropperMode) {
+        // 元の色を保存
+        originalBorderColor = borderColor.value;
+        
+        borderEyedropperBtn.classList.add("active");
+        canvas.classList.add("canvas-eyedropper");
+        canvas.style.cursor = "crosshair";
+    } else {
+        // 元の色に戻す
+        borderColor.value = originalBorderColor;
+        borderColorHex.value = originalBorderColor;
+        
+        borderEyedropperBtn.classList.remove("active");
+        canvas.classList.remove("canvas-eyedropper");
+        canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+        
+        drawCanvas();
+        saveSettingsToURL();
+    }
 });

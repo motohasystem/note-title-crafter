@@ -242,6 +242,35 @@ h1 {
     background-color: #27ae60;
 }
 
+
+.control-group {
+    position: relative;
+}
+
+.eyedropper-btn {
+    padding: 6px 8px;
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    margin-left: 4px;
+}
+
+.eyedropper-btn:hover {
+    background-color: #138496;
+}
+
+.eyedropper-btn.active {
+    background-color: #28a745;
+}
+
+.canvas-eyedropper {
+    cursor: crosshair !important;
+}
+
 @media (max-width: 768px) {
     .editor-section {
         grid-template-columns: 1fr;
