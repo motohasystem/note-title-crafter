@@ -15,6 +15,9 @@ const textPadding = document.getElementById("textPadding");
 const textPaddingValue = document.getElementById("textPaddingValue");
 const textBackgroundOpacity = document.getElementById("textBackgroundOpacity");
 const textBackgroundOpacityValue = document.getElementById("textBackgroundOpacityValue");
+const textStroke = document.getElementById("textStroke");
+const textStrokeWidth = document.getElementById("textStrokeWidth");
+const textStrokeWidthValue = document.getElementById("textStrokeWidthValue");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const downloadBtn = document.getElementById("downloadBtn");
@@ -61,6 +64,19 @@ textPadding.addEventListener("input", (e) => {
 // 文字背景の透明度スライダーの値を表示
 textBackgroundOpacity.addEventListener("input", (e) => {
     textBackgroundOpacityValue.textContent = e.target.value;
+    drawCanvas();
+    saveSettingsToURL();
+});
+
+// 文字枠線チェックボックスの処理
+textStroke.addEventListener("change", (e) => {
+    drawCanvas();
+    saveSettingsToURL();
+});
+
+// 文字枠線の太さスライダーの値を表示
+textStrokeWidth.addEventListener("input", (e) => {
+    textStrokeWidthValue.textContent = e.target.value;
     drawCanvas();
     saveSettingsToURL();
 });
@@ -216,6 +232,8 @@ function saveSettingsToURL() {
     params.set("textBackground", textBackground.checked);
     params.set("textPadding", textPadding.value);
     params.set("textBackgroundOpacity", textBackgroundOpacity.value);
+    params.set("textStroke", textStroke.checked);
+    params.set("textStrokeWidth", textStrokeWidth.value);
     params.set("fitMode", fitMode);
     params.set("imageOffsetX", imageOffsetX);
     params.set("imageOffsetY", imageOffsetY);
@@ -270,6 +288,15 @@ function loadSettingsFromURL() {
     if (params.has("textBackgroundOpacity")) {
         textBackgroundOpacity.value = params.get("textBackgroundOpacity");
         textBackgroundOpacityValue.textContent = params.get("textBackgroundOpacity");
+    }
+
+    if (params.has("textStroke")) {
+        textStroke.checked = params.get("textStroke") === "true";
+    }
+
+    if (params.has("textStrokeWidth")) {
+        textStrokeWidth.value = params.get("textStrokeWidth");
+        textStrokeWidthValue.textContent = params.get("textStrokeWidth");
     }
 
     if (params.has("fitMode")) {
@@ -466,6 +493,13 @@ function drawCanvas() {
         ctx.fillStyle = fontColor.value;
         wrappedLines.forEach((line, index) => {
             if (line.trim() !== "") {
+                // 枠線を描画（fillTextより先に描画）
+                if (textStroke.checked) {
+                    ctx.strokeStyle = borderColor.value;
+                    ctx.lineWidth = parseInt(textStrokeWidth.value);
+                    ctx.strokeText(line, textX, startY + index * lineHeight);
+                }
+                // 文字を描画
                 ctx.fillText(line, textX, startY + index * lineHeight);
             }
         });
