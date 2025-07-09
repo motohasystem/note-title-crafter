@@ -15,7 +15,6 @@ const textPadding = document.getElementById("textPadding");
 const textPaddingValue = document.getElementById("textPaddingValue");
 const textBackgroundOpacity = document.getElementById("textBackgroundOpacity");
 const textBackgroundOpacityValue = document.getElementById("textBackgroundOpacityValue");
-const textStroke = document.getElementById("textStroke");
 const textStrokeWidth = document.getElementById("textStrokeWidth");
 const textStrokeWidthValue = document.getElementById("textStrokeWidthValue");
 const canvas = document.getElementById("canvas");
@@ -65,12 +64,6 @@ textPadding.addEventListener("input", (e) => {
 // 文字背景の透明度スライダーの値を表示
 textBackgroundOpacity.addEventListener("input", (e) => {
     textBackgroundOpacityValue.textContent = e.target.value;
-    drawCanvas();
-    saveSettingsToURL();
-});
-
-// 文字枠線チェックボックスの処理
-textStroke.addEventListener("change", (e) => {
     drawCanvas();
     saveSettingsToURL();
 });
@@ -233,7 +226,6 @@ function saveSettingsToURL() {
     params.set("textBackground", textBackground.checked);
     params.set("textPadding", textPadding.value);
     params.set("textBackgroundOpacity", textBackgroundOpacity.value);
-    params.set("textStroke", textStroke.checked);
     params.set("textStrokeWidth", textStrokeWidth.value);
     params.set("fitMode", fitMode);
     params.set("imageOffsetX", imageOffsetX);
@@ -289,10 +281,6 @@ function loadSettingsFromURL() {
     if (params.has("textBackgroundOpacity")) {
         textBackgroundOpacity.value = params.get("textBackgroundOpacity");
         textBackgroundOpacityValue.textContent = params.get("textBackgroundOpacity");
-    }
-
-    if (params.has("textStroke")) {
-        textStroke.checked = params.get("textStroke") === "true";
     }
 
     if (params.has("textStrokeWidth")) {
@@ -527,7 +515,7 @@ function drawCanvas() {
         wrappedLines.forEach((line, index) => {
             if (line.trim() !== "") {
                 // 枠線を描画（fillTextより先に描画）
-                if (textStroke.checked) {
+                if (parseInt(textStrokeWidth.value) > 0) {
                     ctx.strokeStyle = borderColor.value;
                     ctx.lineWidth = parseInt(textStrokeWidth.value);
                     ctx.strokeText(line, textX, startY + index * lineHeight);
