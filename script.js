@@ -23,6 +23,7 @@ const ctx = canvas.getContext("2d");
 const downloadBtn = document.getElementById("downloadBtn");
 const copyImageBtn = document.getElementById("copyImageBtn");
 const copyUrlBtn = document.getElementById("copyUrlBtn");
+const clearBtn = document.getElementById("clearBtn");
 const noImageMessage = document.getElementById("noImageMessage");
 const eyedropperBtn = document.getElementById("eyedropperBtn");
 const borderEyedropperBtn = document.getElementById("borderEyedropperBtn");
@@ -325,33 +326,64 @@ function drawCanvas() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    // 背景を塗りつぶし
-    ctx.fillStyle = "#f0f0f0";
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    if (!uploadedImage) return;
-
-    // フィットモードに応じてスケールを計算
-    let scale, scaledWidth, scaledHeight, x, y;
-
-    if (fitMode === "contain") {
-        // 全体が表示されるようにフィット（高さフィット）
-        scale = Math.min(
-            canvasWidth / uploadedImage.width,
-            canvasHeight / uploadedImage.height
-        );
+    // タイトルテキストの内容をチェック
+    const hasText = titleText.value.trim() !== "";
+    
+    // 画像がない場合の処理
+    if (!uploadedImage) {
+        if (hasText) {
+            // テキストがある場合は透過背景で画像を作成
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            // noImageMessageを隠す
+            noImageMessage.style.display = "none";
+            // ダウンロード・コピーボタンを有効化
+            downloadBtn.disabled = false;
+            copyImageBtn.disabled = false;
+        } else {
+            // テキストがない場合は従来通り灰色背景で終了
+            ctx.fillStyle = "#f0f0f0";
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            // noImageMessageを表示
+            noImageMessage.style.display = "block";
+            // ダウンロード・コピーボタンを無効化
+            downloadBtn.disabled = true;
+            copyImageBtn.disabled = true;
+            return;
+        }
     } else {
-        // 画面を埋めるようにフィット（幅フィット）
-        scale = Math.max(
-            canvasWidth / uploadedImage.width,
-            canvasHeight / uploadedImage.height
-        );
+        // 画像がある場合は従来通り灰色背景で開始
+        ctx.fillStyle = "#f0f0f0";
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        // noImageMessageを隠す
+        noImageMessage.style.display = "none";
+        // ダウンロード・コピーボタンを有効化
+        downloadBtn.disabled = false;
+        copyImageBtn.disabled = false;
     }
 
-    scaledWidth = uploadedImage.width * scale;
-    scaledHeight = uploadedImage.height * scale;
-    x = (canvasWidth - scaledWidth) / 2 + imageOffsetX;
-    y = (canvasHeight - scaledHeight) / 2 + imageOffsetY;
+    // 画像がある場合のみ画像描画処理を実行
+    if (uploadedImage) {
+        // フィットモードに応じてスケールを計算
+        let scale, scaledWidth, scaledHeight, x, y;
+
+        if (fitMode === "contain") {
+            // 全体が表示されるようにフィット（高さフィット）
+            scale = Math.min(
+                canvasWidth / uploadedImage.width,
+                canvasHeight / uploadedImage.height
+            );
+        } else {
+            // 画面を埋めるようにフィット（幅フィット）
+            scale = Math.max(
+                canvasWidth / uploadedImage.width,
+                canvasHeight / uploadedImage.height
+            );
+        }
+
+        scaledWidth = uploadedImage.width * scale;
+        scaledHeight = uploadedImage.height * scale;
+        x = (canvasWidth - scaledWidth) / 2 + imageOffsetX;
+        y = (canvasHeight - scaledHeight) / 2 + imageOffsetY;
 
     // クリッピング領域を設定
     ctx.save();
@@ -361,19 +393,20 @@ function drawCanvas() {
 
     // 画像を描画
     ctx.drawImage(uploadedImage, x, y, scaledWidth, scaledHeight);
-    ctx.restore();
+        ctx.restore();
 
-    // 枠を描画
-    const borderWidthVal = parseInt(borderWidth.value);
-    if (borderWidthVal > 0) {
-        ctx.strokeStyle = borderColor.value;
-        ctx.lineWidth = borderWidthVal;
-        ctx.strokeRect(
-            borderWidthVal / 2,
-            borderWidthVal / 2,
-            canvas.width - borderWidthVal,
-            canvas.height - borderWidthVal
-        );
+        // 枠を描画
+        const borderWidthVal = parseInt(borderWidth.value);
+        if (borderWidthVal > 0) {
+            ctx.strokeStyle = borderColor.value;
+            ctx.lineWidth = borderWidthVal;
+            ctx.strokeRect(
+                borderWidthVal / 2,
+                borderWidthVal / 2,
+                canvas.width - borderWidthVal,
+                canvas.height - borderWidthVal
+            );
+        }
     }
 
     // テキストがある場合のみ描画
@@ -567,7 +600,9 @@ function getLines(ctx, text, maxWidth) {
 
 // ダウンロード処理
 downloadBtn.addEventListener("click", () => {
-    if (!uploadedImage) return;
+    // テキストがある場合またはアップロードされた画像がある場合のみ実行
+    const hasText = titleText.value.trim() !== "";
+    if (!uploadedImage && !hasText) return;
 
     const link = document.createElement("a");
     link.download = "note-title.png";
@@ -577,7 +612,9 @@ downloadBtn.addEventListener("click", () => {
 
 // 画像コピー処理
 copyImageBtn.addEventListener("click", async () => {
-    if (!uploadedImage) return;
+    // テキストがある場合またはアップロードされた画像がある場合のみ実行
+    const hasText = titleText.value.trim() !== "";
+    if (!uploadedImage && !hasText) return;
 
     try {
         // キャンバスをBlobに変換
@@ -658,6 +695,30 @@ copyUrlBtn.addEventListener("click", async () => {
             copyUrlBtn.textContent = originalText;
             copyUrlBtn.classList.remove("copied");
         }, 2000);
+    }
+});
+
+// クリア処理
+clearBtn.addEventListener("click", () => {
+    // 確認ダイアログを表示
+    if (confirm("画像とテキストをクリアしますか？")) {
+        // 画像をクリア
+        uploadedImage = null;
+        imageUpload.value = "";
+        
+        // テキストをクリア
+        titleText.value = "";
+        
+        // 画像オフセットをリセット
+        imageOffsetX = 0;
+        imageOffsetY = 0;
+        fitMode = "contain";
+        
+        // キャンバスを再描画
+        drawCanvas();
+        
+        // URLを更新
+        saveSettingsToURL();
     }
 });
 

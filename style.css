@@ -35,6 +35,14 @@ h1 {
     margin-bottom: 20px;
 }
 
+.upload-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 .upload-hint {
     margin-top: 10px;
     color: #666;
@@ -240,6 +248,22 @@ h1 {
 
 .copy-url-btn.copied {
     background-color: #27ae60;
+}
+
+.clear-btn {
+    padding: 12px 24px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.clear-btn:hover {
+    background-color: #c0392b;
 }
 
 
