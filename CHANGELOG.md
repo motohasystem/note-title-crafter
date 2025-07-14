@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-07-14
+
+### Added
+- 設定履歴機能
+  - 画像ダウンロード/コピー時に設定を自動的にローカルストレージに保存
+  - 画面下部に履歴を表示、クリックで設定を復元（テキストは除く）
+  - 履歴は最大20件まで保持、個別削除可能
+  - 履歴アイテムに保存された文字装飾をプレビュー表示
+
+### Changed
+- ツール名を「サムネ盛丸（モリマル）」に変更
+- タイトルを画像アップロードボタンの上に配置
+- URLパラメータを短縮形に変更
+  - パラメータ名を短縮（例: fontSize→fs、fontColor→fc）
+  - 色を3文字表記に圧縮（可能な場合）
+  - ブール値を0/1に変換
+  - デフォルト値の場合はパラメータを省略
+  - 旧形式のURLとの互換性を維持
+
+### Fixed
+- 履歴アイテムの最大幅を150pxに制限してレイアウトを改善
+
 ## [1.1.1] - 2025-07-09
 
 ### Changed
