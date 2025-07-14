@@ -645,6 +645,30 @@ function displayHistory() {
         const text = document.createElement('div');
         text.className = 'history-item-text';
         text.textContent = item.titleText || '(テキストなし)';
+        
+        // 保存された設定をテキストに適用
+        text.style.color = item.fontColor;
+        text.style.fontSize = '14px'; // 履歴表示用の固定サイズ
+        text.style.fontWeight = 'bold';
+        
+        // 文字に影をつける
+        if (item.textShadow) {
+            text.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        }
+        
+        // 文字に背景をつける
+        if (item.textBackground) {
+            const opacity = item.textBackgroundOpacity / 100;
+            text.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
+            text.style.padding = '5px 8px';
+            text.style.borderRadius = '4px';
+            text.style.marginBottom = '8px';
+        }
+        
+        // 文字に枠線をつける
+        if (item.textStrokeWidth > 0) {
+            text.style.webkitTextStroke = `${Math.min(item.textStrokeWidth / 4, 1)}px ${item.borderColor}`;
+        }
 
         const details = document.createElement('div');
         details.className = 'history-item-details';
@@ -676,7 +700,10 @@ function displayHistory() {
 
 // 履歴項目を読み込む関数
 function loadHistoryItem(item) {
-    titleText.value = item.titleText;
+    // テキスト自体は反映させない
+    // titleText.value = item.titleText;
+    
+    // 装飾設定のみ反映
     fontSize.value = item.fontSize;
     fontSizeValue.textContent = item.fontSize;
     fontColor.value = item.fontColor;

@@ -335,13 +335,11 @@ h1 {
 }
 
 .history-item-text {
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-bottom: 5px;
+    display: inline-block;
+    max-width: 100%;
 }
 
 .history-item-details {
