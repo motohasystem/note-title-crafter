@@ -26,6 +26,7 @@ const clearBtn = document.getElementById("clearBtn");
 const noImageMessage = document.getElementById("noImageMessage");
 const eyedropperBtn = document.getElementById("eyedropperBtn");
 const borderEyedropperBtn = document.getElementById("borderEyedropperBtn");
+const historyList = document.getElementById("historyList");
 
 let uploadedImage = null;
 let fitMode = "contain"; // 'contain' または 'cover'
@@ -306,6 +307,7 @@ window.addEventListener("load", () => {
     initCanvas();
     loadSettingsFromURL();
     drawCanvas();
+    displayHistory();
 });
 
 // キャンバスに描画
@@ -586,11 +588,133 @@ function getLines(ctx, text, maxWidth) {
     }
 }
 
+// 設定履歴を保存する関数
+function saveToHistory() {
+    const settings = {
+        titleText: titleText.value,
+        fontSize: fontSize.value,
+        fontColor: fontColor.value,
+        borderColor: borderColor.value,
+        borderWidth: borderWidth.value,
+        textPosition: textPosition.value,
+        textShadow: textShadow.checked,
+        textBackground: textBackground.checked,
+        textPadding: textPadding.value,
+        textBackgroundOpacity: textBackgroundOpacity.value,
+        textStrokeWidth: textStrokeWidth.value,
+        timestamp: Date.now()
+    };
+
+    // localStorage から履歴を取得
+    let history = JSON.parse(localStorage.getItem('titleImageHistory') || '[]');
+    
+    // 重複を避けるため、同じ設定が既にあるかチェック
+    const isDuplicate = history.some(item => 
+        item.titleText === settings.titleText &&
+        item.fontSize === settings.fontSize &&
+        item.fontColor === settings.fontColor
+    );
+
+    if (!isDuplicate) {
+        // 新しい設定を履歴の先頭に追加
+        history.unshift(settings);
+        
+        // 履歴は最大20件まで保持
+        if (history.length > 20) {
+            history = history.slice(0, 20);
+        }
+        
+        // localStorage に保存
+        localStorage.setItem('titleImageHistory', JSON.stringify(history));
+        
+        // 履歴表示を更新
+        displayHistory();
+    }
+}
+
+// 履歴を表示する関数
+function displayHistory() {
+    const history = JSON.parse(localStorage.getItem('titleImageHistory') || '[]');
+    historyList.innerHTML = '';
+
+    history.forEach((item, index) => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.dataset.index = index;
+
+        const text = document.createElement('div');
+        text.className = 'history-item-text';
+        text.textContent = item.titleText || '(テキストなし)';
+
+        const details = document.createElement('div');
+        details.className = 'history-item-details';
+        details.textContent = `${item.fontSize}px`;
+
+        const date = document.createElement('div');
+        date.className = 'history-item-date';
+        const dateObj = new Date(item.timestamp);
+        date.textContent = `${dateObj.getMonth() + 1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'history-delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteHistoryItem(index);
+        };
+
+        historyItem.appendChild(text);
+        historyItem.appendChild(details);
+        historyItem.appendChild(date);
+        historyItem.appendChild(deleteBtn);
+
+        historyItem.onclick = () => loadHistoryItem(item);
+
+        historyList.appendChild(historyItem);
+    });
+}
+
+// 履歴項目を読み込む関数
+function loadHistoryItem(item) {
+    titleText.value = item.titleText;
+    fontSize.value = item.fontSize;
+    fontSizeValue.textContent = item.fontSize;
+    fontColor.value = item.fontColor;
+    fontColorHex.value = item.fontColor;
+    borderColor.value = item.borderColor;
+    borderColorHex.value = item.borderColor;
+    borderWidth.value = item.borderWidth;
+    borderWidthValue.textContent = item.borderWidth;
+    textPosition.value = item.textPosition;
+    textShadow.checked = item.textShadow;
+    textBackground.checked = item.textBackground;
+    textPadding.value = item.textPadding;
+    textPaddingValue.textContent = item.textPadding;
+    textBackgroundOpacity.value = item.textBackgroundOpacity;
+    textBackgroundOpacityValue.textContent = item.textBackgroundOpacity;
+    textStrokeWidth.value = item.textStrokeWidth;
+    textStrokeWidthValue.textContent = item.textStrokeWidth;
+
+    drawCanvas();
+    saveSettingsToURL();
+}
+
+// 履歴項目を削除する関数
+function deleteHistoryItem(index) {
+    let history = JSON.parse(localStorage.getItem('titleImageHistory') || '[]');
+    history.splice(index, 1);
+    localStorage.setItem('titleImageHistory', JSON.stringify(history));
+    displayHistory();
+}
+
 // ダウンロード処理
 downloadBtn.addEventListener("click", () => {
     // テキストがある場合またはアップロードされた画像がある場合のみ実行
     const hasText = titleText.value.trim() !== "";
     if (!uploadedImage && !hasText) return;
+
+    // 履歴に保存
+    saveToHistory();
 
     const link = document.createElement("a");
     link.download = "note-title.png";
@@ -603,6 +727,9 @@ copyImageBtn.addEventListener("click", async () => {
     // テキストがある場合またはアップロードされた画像がある場合のみ実行
     const hasText = titleText.value.trim() !== "";
     if (!uploadedImage && !hasText) return;
+
+    // 履歴に保存
+    saveToHistory();
 
     try {
         // キャンバスをBlobに変換

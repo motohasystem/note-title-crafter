@@ -2,143 +2,143 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## プロジェクト概要
 
-This is **noteタイトル画像メーカー** (Note Title Image Maker) - a web-based image editing application for creating blog/note title graphics. It's a pure vanilla JavaScript application with no build system or dependencies.
+これは **noteタイトル画像メーカー** (Note Title Image Maker) - ブログ記事やnote用のタイトル画像を作成するWebベースの画像編集アプリケーションです。純粋なバニラJavaScriptアプリケーションで、ビルドシステムや依存関係はありません。
 
-**Demo**: https://motohasystem.github.io/note-title-crafter/
+**デモサイト**: https://motohasystem.github.io/note-title-crafter/
 
-## Development Commands
+## 開発コマンド
 
-**No build system** - This is a static web application:
-- **Local development**: Open `index.html` in a browser or serve with any static server
-- **No npm scripts** - No package.json exists
-- **No linting/testing** - Pure vanilla JS without tooling
-- **Deployment**: Static files can be deployed directly to any web server
+**ビルドシステムなし** - これは静的Webアプリケーションです：
+- **ローカル開発**: `index.html`をブラウザで開くか、任意の静的サーバーで提供
+- **npmスクリプトなし** - package.jsonは存在しません
+- **リンティング/テストなし** - ツールなしの純粋なバニラJS
+- **デプロイ**: 静的ファイルは任意のWebサーバーに直接デプロイ可能
 
-## Architecture Overview
+## アーキテクチャ概要
 
-### Core Application Structure
-- **Single-page application** built with vanilla HTML5/CSS3/JavaScript
-- **Canvas-based** image manipulation using HTML5 Canvas API
-- **Event-driven** architecture with DOM event listeners for user interactions
-- **State management** through global variables and URL parameters
+### コアアプリケーション構造
+- バニラHTML5/CSS3/JavaScriptで構築された**シングルページアプリケーション**
+- HTML5 Canvas APIを使用した**Canvasベース**の画像操作
+- ユーザーインタラクション用のDOMイベントリスナーを持つ**イベント駆動**アーキテクチャ
+- グローバル変数とURLパラメータによる**状態管理**
 
-### Key Files
-- `index.html` - Main application HTML structure
-- `script.js` - All JavaScript functionality (697 lines, single file)
-- `style.css` - Complete styling and responsive design
+### 主要ファイル
+- `index.html` - メインアプリケーションのHTML構造
+- `script.js` - すべてのJavaScript機能（697行、単一ファイル）
+- `style.css` - 完全なスタイリングとレスポンシブデザイン
 
-### Main JavaScript Architecture (script.js)
+### メインJavaScriptアーキテクチャ (script.js)
 
-**State Variables:**
-- `uploadedImage` - Current background image
-- `fitMode` - Image display mode ("contain" or "cover")  
-- `imageOffsetX/Y` - Image positioning for drag functionality
-- `isDragging`, `dragStartX/Y`, `hasDragged` - Drag state management
+**状態変数:**
+- `uploadedImage` - 現在の背景画像
+- `fitMode` - 画像表示モード ("contain" または "cover")
+- `imageOffsetX/Y` - ドラッグ機能用の画像位置
+- `isDragging`, `dragStartX/Y`, `hasDragged` - ドラッグ状態管理
 
-**Core Functions:**
-- `drawCanvas()` - Main rendering function, redraws entire canvas
-- `loadImageFromFile()` - Handles image upload and processing
-- `saveSettingsToURL()` - Persists settings to URL parameters
-- `loadSettingsFromURL()` - Restores settings from URL parameters
-- Event listeners for all UI controls
+**コア関数:**
+- `drawCanvas()` - メインレンダリング関数、キャンバス全体を再描画
+- `loadImageFromFile()` - 画像アップロードと処理を処理
+- `saveSettingsToURL()` - 設定をURLパラメータに永続化
+- `loadSettingsFromURL()` - URLパラメータから設定を復元
+- すべてのUIコントロール用のイベントリスナー
 
-**Canvas Rendering Pipeline:**
-1. Clear canvas (1280×670px fixed size)
-2. Draw background image with current fit mode and offset
-3. Apply border if enabled
-4. Draw text with all styling (shadow, background, positioning)
+**Canvasレンダリングパイプライン:**
+1. キャンバスをクリア（1280×670px固定サイズ）
+2. 現在のフィットモードとオフセットで背景画像を描画
+3. 有効な場合は枠線を適用
+4. すべてのスタイリング（影、背景、位置）でテキストを描画
 
-### Image Processing Features
-- **Dual fit modes**: Height-fit (contain) and width-fit (cover)
-- **Interactive positioning**: Click to toggle modes, drag to reposition in cover mode
-- **Fixed output size**: Always 1280×670px (optimized for note platform)
+### 画像処理機能
+- **デュアルフィットモード**: 高さフィット（contain）と幅フィット（cover）
+- **インタラクティブポジショニング**: クリックでモード切り替え、カバーモードでドラッグして再配置
+- **固定出力サイズ**: 常に1280×670px（noteプラットフォーム用に最適化）
 
-### Text Rendering System
-- **Multi-line support** with automatic line height calculation
-- **Positioning system**: Top/center/bottom alignment
-- **Styling features**: Color, size (20-150px), shadow, rounded background
-- **Color complementing**: Border color auto-set to text color complement
+### テキストレンダリングシステム
+- 自動行高計算による**複数行サポート**
+- **位置決めシステム**: 上/中央/下の配置
+- **スタイリング機能**: 色、サイズ（20-150px）、影、角丸背景
+- **色補完**: 枠線色は文字色の補色に自動設定
 
-### Settings Persistence
-- **URL-based**: All settings (except title text) saved to URL parameters
-- **Sharing mechanism**: Generated URLs can be shared to restore exact settings
-- **Parameter mapping**: Each UI control maps to specific URL parameter
+### 設定の永続化
+- **URLベース**: すべての設定（タイトルテキストを除く）はURLパラメータに保存
+- **共有メカニズム**: 生成されたURLは正確な設定を復元するために共有可能
+- **パラメータマッピング**: 各UIコントロールは特定のURLパラメータにマップ
 
-## Code Patterns
+## コードパターン
 
-### Event Handling Pattern
+### イベント処理パターン
 ```javascript
-// Standard pattern for UI controls
+// UIコントロールの標準パターン
 control.addEventListener("input", (e) => {
-    // Update display value if needed
-    drawCanvas();           // Re-render canvas
-    saveSettingsToURL();    // Persist to URL
+    // 必要に応じて表示値を更新
+    drawCanvas();           // キャンバスを再レンダリング
+    saveSettingsToURL();    // URLに永続化
 });
 ```
 
-### Canvas Drawing Pattern
+### Canvas描画パターン
 ```javascript
-// All drawing happens in drawCanvas() function
+// すべての描画はdrawCanvas()関数で行われる
 function drawCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (uploadedImage) {
-        // Draw background image with current mode/offset
-        // Apply border if enabled
+        // 現在のモード/オフセットで背景画像を描画
+        // 有効な場合は枠線を適用
     }
-    // Draw text with all styling
+    // すべてのスタイリングでテキストを描画
 }
 ```
 
-### Color Management
-- Use `hexToRgb()` and `rgbToHex()` for color conversions
-- Complement colors calculated with `getComplementaryColor()`
-- Both color picker and hex input supported for all colors
+### 色管理
+- 色変換には`hexToRgb()`と`rgbToHex()`を使用
+- 補色は`getComplementaryColor()`で計算
+- すべての色にカラーピッカーと16進数入力の両方をサポート
 
-## Feature Implementation Notes
+## 機能実装の注意点
 
-### Image Upload Methods
-- File input dialog
-- Drag & drop onto canvas
-- Clipboard paste (Ctrl+V / Cmd+V)
-- All methods use `loadImageFromFile()` function
+### 画像アップロード方法
+- ファイル入力ダイアログ
+- キャンバスへのドラッグ＆ドロップ
+- クリップボード貼り付け（Ctrl+V / Cmd+V）
+- すべての方法は`loadImageFromFile()`関数を使用
 
-### Canvas Interaction
-- **Click**: Toggle between contain/cover modes (unless drag occurred)
-- **Drag**: Move image position in cover mode
-- **Mouse events**: Track drag state to prevent mode switching after drag
+### Canvasインタラクション
+- **クリック**: contain/coverモード間の切り替え（ドラッグが発生していない場合）
+- **ドラッグ**: カバーモードで画像位置を移動
+- **マウスイベント**: ドラッグ後のモード切り替えを防ぐためにドラッグ状態を追跡
 
-### Export Options
-- **Download**: Canvas.toBlob() → download link
-- **Clipboard**: Canvas.toBlob() → Clipboard API
-- **URL sharing**: Generate shareable URL with current settings
+### エクスポートオプション
+- **ダウンロード**: Canvas.toBlob() → ダウンロードリンク
+- **クリップボード**: Canvas.toBlob() → Clipboard API
+- **URL共有**: 現在の設定で共有可能なURLを生成
 
-## Browser Compatibility
-- **Modern browsers** required for Clipboard API
-- **Canvas API** support needed
-- **File API** for drag & drop functionality
-- No polyfills or fallbacks implemented
+## ブラウザ互換性
+- Clipboard APIのために**モダンブラウザ**が必要
+- **Canvas API**サポートが必要
+- ドラッグ＆ドロップ機能のための**File API**
+- ポリフィルやフォールバックは実装されていません
 
-## Responsive Design
-- **CSS Grid/Flexbox** layout
-- **Mobile-friendly** touch interactions
-- **Adaptive sizing** for different screen sizes
-- Canvas maintains fixed aspect ratio
+## レスポンシブデザイン
+- **CSS Grid/Flexbox**レイアウト
+- **モバイルフレンドリー**なタッチインタラクション
+- 異なる画面サイズに対する**適応サイズ設定**
+- キャンバスは固定アスペクト比を維持
 
-## Development History
+## 開発履歴
 
-This application was built incrementally through a series of feature additions documented in the original CLAUDE.md prompts section. Key evolution points:
-1. Basic upload + text overlay
-2. Multi-line text support  
-3. Image fit modes and dragging
-4. Text styling (color, shadow, background)
-5. Settings persistence via URL
-6. Clipboard integration
-7. UI polish and responsive design
+このアプリケーションは、元のCLAUDE.mdプロンプトセクションに文書化された一連の機能追加を通じて段階的に構築されました。主な進化ポイント：
+1. 基本的なアップロード + テキストオーバーレイ
+2. 複数行テキストサポート
+3. 画像フィットモードとドラッグ
+4. テキストスタイリング（色、影、背景）
+5. URL経由の設定永続化
+6. クリップボード統合
+7. UIの洗練とレスポンシブデザイン
 
-The codebase maintains this incremental structure, with all functionality consolidated into the single script.js file.
+コードベースはこの段階的な構造を維持し、すべての機能は単一のscript.jsファイルに統合されています。
 
 ---
 
-<small>Version 1.1 | Last updated: 2025-07-09</small>
+<small>バージョン 1.1 | 最終更新: 2025-07-09</small>
