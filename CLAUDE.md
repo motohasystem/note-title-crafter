@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-これは **noteタイトル画像メーカー** (Note Title Image Maker) - ブログ記事やnote用のタイトル画像を作成するWebベースの画像編集アプリケーションです。純粋なバニラJavaScriptアプリケーションで、ビルドシステムや依存関係はありません。
+これは **サムネ盛丸（モリマル）** - ブログ記事やnote用のタイトル画像を作成するWebベースの画像編集アプリケーションです。純粋なバニラJavaScriptアプリケーションで、ビルドシステムや依存関係はありません。
 
 **デモサイト**: https://motohasystem.github.io/note-title-crafter/
 

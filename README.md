@@ -1,4 +1,4 @@
-# noteタイトル画像メーカー
+# サムネ盛丸（モリマル） - noteタイトル画像メーカー
 [[demo site](https://motohasystem.github.io/note-title-crafter/)]
 
 noteやブログ記事用のタイトル画像を簡単に作成できるWebアプリケーションです。

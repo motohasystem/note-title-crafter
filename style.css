@@ -25,9 +25,14 @@ body {
 
 h1 {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     color: #2c3e50;
     font-size: 1.8rem;
+}
+
+.preview-section h1 {
+    margin-top: 0;
+    margin-bottom: 20px;
 }
 
 .upload-section {

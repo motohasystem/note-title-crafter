@@ -215,90 +215,243 @@ function initCanvas() {
     canvas.height = 670;
 }
 
+// パラメータ名のマッピング（長い名前 → 短縮名）
+const paramMapping = {
+    fontSize: 'fs',
+    fontColor: 'fc',
+    borderColor: 'bc',
+    borderWidth: 'bw',
+    textPosition: 'tp',
+    textShadow: 'ts',
+    textBackground: 'tb',
+    textPadding: 'pd',
+    textBackgroundOpacity: 'bo',
+    textStrokeWidth: 'sw',
+    fitMode: 'fm',
+    imageOffsetX: 'ox',
+    imageOffsetY: 'oy'
+};
+
+// 逆マッピング（短縮名 → 長い名前）
+const reverseParamMapping = Object.fromEntries(
+    Object.entries(paramMapping).map(([key, value]) => [value, key])
+);
+
+// デフォルト値
+const defaultValues = {
+    fontSize: '60',
+    fontColor: '#ffffff',
+    borderColor: '#000000',
+    borderWidth: '0',
+    textPosition: 'center',
+    textShadow: true,
+    textBackground: false,
+    textPadding: '20',
+    textBackgroundOpacity: '80',
+    textStrokeWidth: '0',
+    fitMode: 'contain',
+    imageOffsetX: 0,
+    imageOffsetY: 0
+};
+
+// 色を短縮する関数（例: #ffffff → fff）
+function compressColor(color) {
+    if (color.length === 7 && color[1] === color[2] && color[3] === color[4] && color[5] === color[6]) {
+        return color[1] + color[3] + color[5];
+    }
+    return color.substring(1); // # を除去
+}
+
+// 色を展開する関数（例: fff → #ffffff）
+function expandColor(color) {
+    if (!color.startsWith('#')) {
+        if (color.length === 3) {
+            color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+        }
+        color = '#' + color;
+    }
+    return color;
+}
+
 // URLパラメータに設定を保存
 function saveSettingsToURL() {
     const params = new URLSearchParams();
-    params.set("fontSize", fontSize.value);
-    params.set("fontColor", fontColor.value);
-    params.set("borderColor", borderColor.value);
-    params.set("borderWidth", borderWidth.value);
-    params.set("textPosition", textPosition.value);
-    params.set("textShadow", textShadow.checked);
-    params.set("textBackground", textBackground.checked);
-    params.set("textPadding", textPadding.value);
-    params.set("textBackgroundOpacity", textBackgroundOpacity.value);
-    params.set("textStrokeWidth", textStrokeWidth.value);
-    params.set("fitMode", fitMode);
-    params.set("imageOffsetX", imageOffsetX);
-    params.set("imageOffsetY", imageOffsetY);
+    
+    // 各設定を短縮形で保存（デフォルト値の場合は省略）
+    if (fontSize.value !== defaultValues.fontSize) {
+        params.set(paramMapping.fontSize, fontSize.value);
+    }
+    
+    if (fontColor.value !== defaultValues.fontColor) {
+        params.set(paramMapping.fontColor, compressColor(fontColor.value));
+    }
+    
+    if (borderColor.value !== defaultValues.borderColor) {
+        params.set(paramMapping.borderColor, compressColor(borderColor.value));
+    }
+    
+    if (borderWidth.value !== defaultValues.borderWidth) {
+        params.set(paramMapping.borderWidth, borderWidth.value);
+    }
+    
+    if (textPosition.value !== defaultValues.textPosition) {
+        params.set(paramMapping.textPosition, textPosition.value === 'top' ? 't' : 
+                                              textPosition.value === 'center' ? 'c' : 'b');
+    }
+    
+    if (textShadow.checked !== defaultValues.textShadow) {
+        params.set(paramMapping.textShadow, textShadow.checked ? '1' : '0');
+    }
+    
+    if (textBackground.checked !== defaultValues.textBackground) {
+        params.set(paramMapping.textBackground, textBackground.checked ? '1' : '0');
+    }
+    
+    if (textPadding.value !== defaultValues.textPadding) {
+        params.set(paramMapping.textPadding, textPadding.value);
+    }
+    
+    if (textBackgroundOpacity.value !== defaultValues.textBackgroundOpacity) {
+        params.set(paramMapping.textBackgroundOpacity, textBackgroundOpacity.value);
+    }
+    
+    if (textStrokeWidth.value !== defaultValues.textStrokeWidth) {
+        params.set(paramMapping.textStrokeWidth, textStrokeWidth.value);
+    }
+    
+    if (fitMode !== defaultValues.fitMode) {
+        params.set(paramMapping.fitMode, fitMode === 'contain' ? 'c' : 'v');
+    }
+    
+    if (imageOffsetX !== defaultValues.imageOffsetX) {
+        params.set(paramMapping.imageOffsetX, imageOffsetX);
+    }
+    
+    if (imageOffsetY !== defaultValues.imageOffsetY) {
+        params.set(paramMapping.imageOffsetY, imageOffsetY);
+    }
 
-    const newUrl = window.location.pathname + "?" + params.toString();
+    const queryString = params.toString();
+    const newUrl = window.location.pathname + (queryString ? "?" + queryString : "");
     window.history.replaceState({}, "", newUrl);
 }
 
 // URLパラメータから設定を読み込み
 function loadSettingsFromURL() {
     const params = new URLSearchParams(window.location.search);
+    
+    // パラメータを確認する関数（短縮形と旧形式の両方をチェック）
+    const getParam = (longName) => {
+        const shortName = paramMapping[longName];
+        if (params.has(shortName)) {
+            return params.get(shortName);
+        } else if (params.has(longName)) {
+            return params.get(longName);
+        }
+        return null;
+    };
 
-    if (params.has("fontSize")) {
-        fontSize.value = params.get("fontSize");
-        fontSizeValue.textContent = params.get("fontSize");
+    // fontSize
+    const fontSizeParam = getParam('fontSize');
+    if (fontSizeParam !== null) {
+        fontSize.value = fontSizeParam;
+        fontSizeValue.textContent = fontSizeParam;
     }
 
-    if (params.has("fontColor")) {
-        const color = params.get("fontColor");
+    // fontColor
+    const fontColorParam = getParam('fontColor');
+    if (fontColorParam !== null) {
+        const color = expandColor(fontColorParam);
         fontColor.value = color;
         fontColorHex.value = color;
     }
 
-    if (params.has("borderColor")) {
-        const color = params.get("borderColor");
+    // borderColor
+    const borderColorParam = getParam('borderColor');
+    if (borderColorParam !== null) {
+        const color = expandColor(borderColorParam);
         borderColor.value = color;
         borderColorHex.value = color;
     }
 
-    if (params.has("borderWidth")) {
-        borderWidth.value = params.get("borderWidth");
-        borderWidthValue.textContent = params.get("borderWidth");
+    // borderWidth
+    const borderWidthParam = getParam('borderWidth');
+    if (borderWidthParam !== null) {
+        borderWidth.value = borderWidthParam;
+        borderWidthValue.textContent = borderWidthParam;
     }
 
-    if (params.has("textPosition")) {
-        textPosition.value = params.get("textPosition");
+    // textPosition
+    const textPositionValue = getParam('textPosition');
+    if (textPositionValue !== null) {
+        // 短縮形の場合は展開
+        if (textPositionValue === 't') {
+            textPosition.value = 'top';
+        } else if (textPositionValue === 'c') {
+            textPosition.value = 'center';
+        } else if (textPositionValue === 'b') {
+            textPosition.value = 'bottom';
+        } else {
+            textPosition.value = textPositionValue;
+        }
     }
 
-    if (params.has("textShadow")) {
-        textShadow.checked = params.get("textShadow") === "true";
+    // textShadow
+    const textShadowValue = getParam('textShadow');
+    if (textShadowValue !== null) {
+        textShadow.checked = textShadowValue === '1' || textShadowValue === 'true';
     }
 
-    if (params.has("textBackground")) {
-        textBackground.checked = params.get("textBackground") === "true";
+    // textBackground
+    const textBackgroundValue = getParam('textBackground');
+    if (textBackgroundValue !== null) {
+        textBackground.checked = textBackgroundValue === '1' || textBackgroundValue === 'true';
     }
 
-    if (params.has("textPadding")) {
-        textPadding.value = params.get("textPadding");
-        textPaddingValue.textContent = params.get("textPadding");
+    // textPadding
+    const textPaddingParam = getParam('textPadding');
+    if (textPaddingParam !== null) {
+        textPadding.value = textPaddingParam;
+        textPaddingValue.textContent = textPaddingParam;
     }
 
-    if (params.has("textBackgroundOpacity")) {
-        textBackgroundOpacity.value = params.get("textBackgroundOpacity");
-        textBackgroundOpacityValue.textContent = params.get("textBackgroundOpacity");
+    // textBackgroundOpacity
+    const textBackgroundOpacityParam = getParam('textBackgroundOpacity');
+    if (textBackgroundOpacityParam !== null) {
+        textBackgroundOpacity.value = textBackgroundOpacityParam;
+        textBackgroundOpacityValue.textContent = textBackgroundOpacityParam;
     }
 
-    if (params.has("textStrokeWidth")) {
-        textStrokeWidth.value = params.get("textStrokeWidth");
-        textStrokeWidthValue.textContent = params.get("textStrokeWidth");
+    // textStrokeWidth
+    const textStrokeWidthParam = getParam('textStrokeWidth');
+    if (textStrokeWidthParam !== null) {
+        textStrokeWidth.value = textStrokeWidthParam;
+        textStrokeWidthValue.textContent = textStrokeWidthParam;
     }
 
-    if (params.has("fitMode")) {
-        fitMode = params.get("fitMode");
+    // fitMode
+    const fitModeValue = getParam('fitMode');
+    if (fitModeValue !== null) {
+        // 短縮形の場合は展開
+        if (fitModeValue === 'c') {
+            fitMode = 'contain';
+        } else if (fitModeValue === 'v') {
+            fitMode = 'cover';
+        } else {
+            fitMode = fitModeValue;
+        }
     }
 
-    if (params.has("imageOffsetX")) {
-        imageOffsetX = parseFloat(params.get("imageOffsetX"));
+    // imageOffsetX
+    const imageOffsetXValue = getParam('imageOffsetX');
+    if (imageOffsetXValue !== null) {
+        imageOffsetX = parseFloat(imageOffsetXValue);
     }
 
-    if (params.has("imageOffsetY")) {
-        imageOffsetY = parseFloat(params.get("imageOffsetY"));
+    // imageOffsetY
+    const imageOffsetYValue = getParam('imageOffsetY');
+    if (imageOffsetYValue !== null) {
+        imageOffsetY = parseFloat(imageOffsetYValue);
     }
 }
 
