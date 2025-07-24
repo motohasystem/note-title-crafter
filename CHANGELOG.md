@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-07-24
+
+### Added
+- 画像の縦横比を選択できる機能
+  - note推奨 (1280×670)
+  - OGP画像 (1200×630)
+  - 16:9 (1280×720)
+  - 1:1 正方形 (1080×1080)
+  - 4:3 (1280×960)
+  - カスタムサイズ指定機能
+- ダウンロードファイル名に日付を含める
+  - 形式: Morimaru-YYYYMMDD.png
+
+### Changed
+- 縦横比設定をサイドメニューの最上部に配置
+- URLパラメータに縦横比設定を追加（ar, cw, ch）
+- 履歴機能に縦横比情報を含める
+
 ## [1.2.0] - 2025-07-14
 
 ### Added

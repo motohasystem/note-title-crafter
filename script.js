@@ -27,6 +27,10 @@ const noImageMessage = document.getElementById("noImageMessage");
 const eyedropperBtn = document.getElementById("eyedropperBtn");
 const borderEyedropperBtn = document.getElementById("borderEyedropperBtn");
 const historyList = document.getElementById("historyList");
+const aspectRatio = document.getElementById("aspectRatio");
+const customSizeGroup = document.querySelector(".custom-size-group");
+const customWidth = document.getElementById("customWidth");
+const customHeight = document.getElementById("customHeight");
 
 let uploadedImage = null;
 let fitMode = "contain"; // 'contain' または 'cover'
@@ -74,6 +78,33 @@ textStrokeWidth.addEventListener("input", (e) => {
     textStrokeWidthValue.textContent = e.target.value;
     drawCanvas();
     saveSettingsToURL();
+});
+
+// 縦横比選択の変更イベント
+aspectRatio.addEventListener("change", (e) => {
+    const value = e.target.value;
+    if (value === 'custom') {
+        customSizeGroup.style.display = 'block';
+    } else {
+        customSizeGroup.style.display = 'none';
+    }
+    initCanvas(); // キャンバスサイズを更新
+    saveSettingsToURL();
+});
+
+// カスタムサイズの変更イベント
+customWidth.addEventListener("input", () => {
+    if (aspectRatio.value === 'custom') {
+        initCanvas();
+        saveSettingsToURL();
+    }
+});
+
+customHeight.addEventListener("input", () => {
+    if (aspectRatio.value === 'custom') {
+        initCanvas();
+        saveSettingsToURL();
+    }
 });
 
 // 補色を計算する関数
@@ -209,10 +240,37 @@ document.addEventListener("paste", (e) => {
     }
 });
 
+// 縦横比のプリセット定義
+const aspectRatioPresets = {
+    'note': { width: 1280, height: 670 },
+    'ogp': { width: 1200, height: 630 },
+    '16:9': { width: 1280, height: 720 },
+    '1:1': { width: 1080, height: 1080 },
+    '4:3': { width: 1280, height: 960 }
+};
+
+// キャンバスサイズを更新する関数
+function updateCanvasSize(width, height) {
+    canvas.width = width;
+    canvas.height = height;
+    
+    // CSSのアスペクト比も更新
+    const canvasContainer = document.querySelector('.canvas-container');
+    canvasContainer.style.aspectRatio = `${width} / ${height}`;
+    
+    // 再描画
+    drawCanvas();
+}
+
 // 初期化時にキャンバスサイズを設定
 function initCanvas() {
-    canvas.width = 1280;
-    canvas.height = 670;
+    const selectedRatio = aspectRatio.value;
+    if (selectedRatio === 'custom') {
+        updateCanvasSize(parseInt(customWidth.value), parseInt(customHeight.value));
+    } else {
+        const preset = aspectRatioPresets[selectedRatio];
+        updateCanvasSize(preset.width, preset.height);
+    }
 }
 
 // パラメータ名のマッピング（長い名前 → 短縮名）
@@ -229,7 +287,10 @@ const paramMapping = {
     textStrokeWidth: 'sw',
     fitMode: 'fm',
     imageOffsetX: 'ox',
-    imageOffsetY: 'oy'
+    imageOffsetY: 'oy',
+    aspectRatio: 'ar',
+    customWidth: 'cw',
+    customHeight: 'ch'
 };
 
 // 逆マッピング（短縮名 → 長い名前）
@@ -251,7 +312,10 @@ const defaultValues = {
     textStrokeWidth: '0',
     fitMode: 'contain',
     imageOffsetX: 0,
-    imageOffsetY: 0
+    imageOffsetY: 0,
+    aspectRatio: 'note',
+    customWidth: '1280',
+    customHeight: '720'
 };
 
 // 色を短縮する関数（例: #ffffff → fff）
@@ -329,6 +393,19 @@ function saveSettingsToURL() {
     
     if (imageOffsetY !== defaultValues.imageOffsetY) {
         params.set(paramMapping.imageOffsetY, imageOffsetY);
+    }
+    
+    if (aspectRatio.value !== defaultValues.aspectRatio) {
+        params.set(paramMapping.aspectRatio, aspectRatio.value);
+    }
+    
+    if (aspectRatio.value === 'custom') {
+        if (customWidth.value !== defaultValues.customWidth) {
+            params.set(paramMapping.customWidth, customWidth.value);
+        }
+        if (customHeight.value !== defaultValues.customHeight) {
+            params.set(paramMapping.customHeight, customHeight.value);
+        }
     }
 
     const queryString = params.toString();
@@ -453,12 +530,33 @@ function loadSettingsFromURL() {
     if (imageOffsetYValue !== null) {
         imageOffsetY = parseFloat(imageOffsetYValue);
     }
+    
+    // aspectRatio
+    const aspectRatioValue = getParam('aspectRatio');
+    if (aspectRatioValue !== null) {
+        aspectRatio.value = aspectRatioValue;
+        if (aspectRatioValue === 'custom') {
+            customSizeGroup.style.display = 'block';
+        }
+    }
+    
+    // customWidth
+    const customWidthValue = getParam('customWidth');
+    if (customWidthValue !== null) {
+        customWidth.value = customWidthValue;
+    }
+    
+    // customHeight
+    const customHeightValue = getParam('customHeight');
+    if (customHeightValue !== null) {
+        customHeight.value = customHeightValue;
+    }
 }
 
 // ページ読み込み時に初期化
 window.addEventListener("load", () => {
-    initCanvas();
-    loadSettingsFromURL();
+    loadSettingsFromURL(); // 先にURLから設定を読み込む
+    initCanvas(); // その後キャンバスを初期化
     drawCanvas();
     displayHistory();
 });
@@ -755,6 +853,9 @@ function saveToHistory() {
         textPadding: textPadding.value,
         textBackgroundOpacity: textBackgroundOpacity.value,
         textStrokeWidth: textStrokeWidth.value,
+        aspectRatio: aspectRatio.value,
+        customWidth: customWidth.value,
+        customHeight: customHeight.value,
         timestamp: Date.now()
     };
 
@@ -874,7 +975,20 @@ function loadHistoryItem(item) {
     textBackgroundOpacityValue.textContent = item.textBackgroundOpacity;
     textStrokeWidth.value = item.textStrokeWidth;
     textStrokeWidthValue.textContent = item.textStrokeWidth;
+    
+    // 縦横比設定を反映
+    if (item.aspectRatio) {
+        aspectRatio.value = item.aspectRatio;
+        if (item.aspectRatio === 'custom') {
+            customSizeGroup.style.display = 'block';
+            if (item.customWidth) customWidth.value = item.customWidth;
+            if (item.customHeight) customHeight.value = item.customHeight;
+        } else {
+            customSizeGroup.style.display = 'none';
+        }
+    }
 
+    initCanvas(); // キャンバスサイズを更新
     drawCanvas();
     saveSettingsToURL();
 }
@@ -896,8 +1010,15 @@ downloadBtn.addEventListener("click", () => {
     // 履歴に保存
     saveToHistory();
 
+    // 現在の日付を取得してファイル名を生成
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const filename = `Morimaru-${year}${month}${day}.png`;
+
     const link = document.createElement("a");
-    link.download = "note-title.png";
+    link.download = filename;
     link.href = canvas.toDataURL();
     link.click();
 });
@@ -930,8 +1051,14 @@ copyImageBtn.addEventListener("click", async () => {
                 }, 2000);
             } catch (err) {
                 // フォールバック: ダウンロードリンクを表示
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const filename = `Morimaru-${year}${month}${day}.png`;
+                
                 const link = document.createElement("a");
-                link.download = "note-title.png";
+                link.download = filename;
                 link.href = canvas.toDataURL();
                 link.click();
 
@@ -945,8 +1072,14 @@ copyImageBtn.addEventListener("click", async () => {
         }, "image/png");
     } catch (err) {
         // さらなるフォールバック
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const filename = `Morimaru-${year}${month}${day}.png`;
+        
         const link = document.createElement("a");
-        link.download = "note-title.png";
+        link.download = filename;
         link.href = canvas.toDataURL();
         link.click();
 
