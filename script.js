@@ -9,6 +9,7 @@ const borderColorHex = document.getElementById("borderColorHex");
 const borderWidth = document.getElementById("borderWidth");
 const borderWidthValue = document.getElementById("borderWidthValue");
 const textPosition = document.getElementById("textPosition");
+const textPositionValue = document.getElementById("textPositionValue");
 const textShadow = document.getElementById("textShadow");
 const textBackground = document.getElementById("textBackground");
 const textPadding = document.getElementById("textPadding");
@@ -182,7 +183,8 @@ borderColorHex.addEventListener("input", (e) => {
 
 // その他のコントロールのイベントリスナー
 titleText.addEventListener("input", drawCanvas);
-textPosition.addEventListener("change", () => {
+textPosition.addEventListener("input", (e) => {
+    textPositionValue.textContent = e.target.value;
     drawCanvas();
     saveSettingsToURL();
 });
@@ -304,7 +306,7 @@ const defaultValues = {
     fontColor: '#ffffff',
     borderColor: '#000000',
     borderWidth: '0',
-    textPosition: 'center',
+    textPosition: '50',
     textShadow: true,
     textBackground: false,
     textPadding: '20',
@@ -359,8 +361,7 @@ function saveSettingsToURL() {
     }
     
     if (textPosition.value !== defaultValues.textPosition) {
-        params.set(paramMapping.textPosition, textPosition.value === 'top' ? 't' : 
-                                              textPosition.value === 'center' ? 'c' : 'b');
+        params.set(paramMapping.textPosition, textPosition.value);
     }
     
     if (textShadow.checked !== defaultValues.textShadow) {
@@ -459,18 +460,19 @@ function loadSettingsFromURL() {
     }
 
     // textPosition
-    const textPositionValue = getParam('textPosition');
-    if (textPositionValue !== null) {
-        // 短縮形の場合は展開
-        if (textPositionValue === 't') {
-            textPosition.value = 'top';
-        } else if (textPositionValue === 'c') {
-            textPosition.value = 'center';
-        } else if (textPositionValue === 'b') {
-            textPosition.value = 'bottom';
+    const textPositionParam = getParam('textPosition');
+    if (textPositionParam !== null) {
+        // 旧形式の互換性を保つ
+        if (textPositionParam === 't' || textPositionParam === 'top') {
+            textPosition.value = '20';
+        } else if (textPositionParam === 'c' || textPositionParam === 'center') {
+            textPosition.value = '50';
+        } else if (textPositionParam === 'b' || textPositionParam === 'bottom') {
+            textPosition.value = '80';
         } else {
-            textPosition.value = textPositionValue;
+            textPosition.value = textPositionParam;
         }
+        textPositionValue.textContent = textPosition.value;
     }
 
     // textShadow
@@ -661,18 +663,8 @@ function drawCanvas() {
 
         // テキスト位置を計算
         let textX = canvas.width / 2;
-        let textY;
-
-        switch (textPosition.value) {
-            case "top":
-                textY = canvas.height * 0.2;
-                break;
-            case "bottom":
-                textY = canvas.height * 0.8;
-                break;
-            default: // center
-                textY = canvas.height / 2;
-        }
+        // スライダーの値（10-90）をキャンバスの高さに対する比率として使用
+        let textY = canvas.height * (parseInt(textPosition.value) / 100);
 
         // 影を描画
         if (textShadow.checked) {
@@ -966,7 +958,17 @@ function loadHistoryItem(item) {
     borderColorHex.value = item.borderColor;
     borderWidth.value = item.borderWidth;
     borderWidthValue.textContent = item.borderWidth;
-    textPosition.value = item.textPosition;
+    // 旧形式の互換性を保つ
+    if (item.textPosition === 'top') {
+        textPosition.value = '20';
+    } else if (item.textPosition === 'center') {
+        textPosition.value = '50';
+    } else if (item.textPosition === 'bottom') {
+        textPosition.value = '80';
+    } else {
+        textPosition.value = item.textPosition || '50';
+    }
+    textPositionValue.textContent = textPosition.value;
     textShadow.checked = item.textShadow;
     textBackground.checked = item.textBackground;
     textPadding.value = item.textPadding;
