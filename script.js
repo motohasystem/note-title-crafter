@@ -41,6 +41,10 @@ let isDragging = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let hasDragged = false;
+let isTextDragging = false;
+let textDragStartY = 0;
+let textDragStartPosition = 0;
+let lastTextBounds = null; // テキスト描画範囲を保持（ヒットテスト用）
 let isEyedropperMode = false;
 let isBorderEyedropperMode = false;
 let originalFontColor = "#ffffff";
@@ -310,7 +314,7 @@ const defaultValues = {
     textShadow: true,
     textBackground: false,
     textPadding: '20',
-    textBackgroundOpacity: '80',
+    textBackgroundOpacity: '0',
     textStrokeWidth: '0',
     fitMode: 'contain',
     imageOffsetX: 0,
@@ -652,8 +656,18 @@ function drawCanvas() {
         }
     }
 
+    // スモークオーバーレイ（背景画像全体を暗くする）
+    const smokeOpacity = parseInt(textBackgroundOpacity.value) / 100;
+    if (smokeOpacity > 0 && uploadedImage) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${smokeOpacity})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
     // テキストがある場合のみ描画
     const text = titleText.value.trim();
+    lastTextBounds = null;
     if (text) {
         // フォント設定
         const fontSizeVal = fontSize.value;
@@ -697,6 +711,22 @@ function drawCanvas() {
         // 複数行の場合は中央揃えになるよう調整
         const totalHeight = wrappedLines.length * lineHeight;
         const startY = textY - totalHeight / 2 + lineHeight / 2;
+
+        // 各行の幅を計測して最大幅を取得（ヒットテスト用にも使用）
+        let maxTextWidthForBounds = 0;
+        wrappedLines.forEach((line) => {
+            if (line.trim() !== "") {
+                const tw = ctx.measureText(line).width;
+                maxTextWidthForBounds = Math.max(maxTextWidthForBounds, tw);
+            }
+        });
+        const hitPadding = 30; // ヒット判定の余白
+        lastTextBounds = {
+            x: textX - maxTextWidthForBounds / 2 - hitPadding,
+            y: startY - lineHeight / 2 - hitPadding,
+            width: maxTextWidthForBounds + hitPadding * 2,
+            height: totalHeight + hitPadding * 2
+        };
 
         // 文字背景を描画
         if (textBackground.checked) {
@@ -1238,11 +1268,29 @@ canvas.addEventListener("click", (e) => {
 
 // ドラッグ開始
 canvas.addEventListener("mousedown", (e) => {
-    if (!uploadedImage || fitMode === "contain" || isEyedropperMode || isBorderEyedropperMode) return;
+    if (isEyedropperMode || isBorderEyedropperMode) return;
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    const canvasX = (e.clientX - rect.left) * scaleX;
+    const canvasY = (e.clientY - rect.top) * scaleY;
+
+    // テキスト領域をクリックした場合はテキスト位置ドラッグ開始
+    if (lastTextBounds &&
+        canvasX >= lastTextBounds.x && canvasX <= lastTextBounds.x + lastTextBounds.width &&
+        canvasY >= lastTextBounds.y && canvasY <= lastTextBounds.y + lastTextBounds.height) {
+        isTextDragging = true;
+        textDragStartY = e.clientY;
+        textDragStartPosition = parseInt(textPosition.value);
+        hasDragged = false;
+        canvas.style.cursor = "ns-resize";
+        e.preventDefault();
+        return;
+    }
+
+    // 画像ドラッグ（coverモード時のみ）
+    if (!uploadedImage || fitMode === "contain") return;
 
     isDragging = true;
     hasDragged = false;
@@ -1306,6 +1354,26 @@ canvas.addEventListener("mousemove", (e) => {
         return;
     }
     
+    // テキスト位置ドラッグ中
+    if (isTextDragging) {
+        const deltaY = e.clientY - textDragStartY;
+        const rect = canvas.getBoundingClientRect();
+        // ドラッグのピクセル移動量をキャンバス高さに対する%に変換
+        const deltaPercent = (deltaY / rect.height) * 100;
+        let newPosition = Math.round(textDragStartPosition + deltaPercent);
+        newPosition = Math.max(10, Math.min(90, newPosition));
+
+        if (Math.abs(deltaY) > 2) {
+            hasDragged = true;
+        }
+
+        textPosition.value = newPosition;
+        textPositionValue.textContent = newPosition;
+        drawCanvas();
+        saveSettingsToURL();
+        return;
+    }
+
     if (!isDragging) return;
 
     const rect = canvas.getBoundingClientRect();
@@ -1349,7 +1417,13 @@ canvas.addEventListener("mousemove", (e) => {
 // ドラッグ終了
 canvas.addEventListener("mouseup", () => {
     isDragging = false;
-    canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+    isTextDragging = false;
+
+    if (isEyedropperMode || isBorderEyedropperMode) {
+        canvas.style.cursor = "crosshair";
+    } else {
+        canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
+    }
 
     // ドラッグフラグをリセット（少し遅延させる）
     setTimeout(() => {
@@ -1369,6 +1443,7 @@ canvas.addEventListener("mouseenter", () => {
 
 canvas.addEventListener("mouseleave", () => {
     isDragging = false;
+    isTextDragging = false;
     canvas.style.cursor = "default";
 });
 
