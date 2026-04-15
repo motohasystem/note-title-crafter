@@ -326,6 +326,88 @@ h1 {
     cursor: crosshair !important;
 }
 
+.layer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.layer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    min-height: 32px;
+}
+
+.layer-item:hover {
+    border-color: #3498db;
+}
+
+.layer-item.active {
+    border-color: #3498db;
+    background-color: #e8f4f8;
+}
+
+.layer-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+}
+
+.layer-delete-btn {
+    width: 20px;
+    height: 20px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+}
+
+.layer-delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.layer-delete-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.add-layer-btn {
+    width: 100%;
+    padding: 6px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s;
+}
+
+.add-layer-btn:hover {
+    background-color: #2980b9;
+}
+
 .history-section {
     background-color: white;
     padding: 15px;

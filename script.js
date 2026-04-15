@@ -32,6 +32,8 @@ const aspectRatio = document.getElementById("aspectRatio");
 const customSizeGroup = document.querySelector(".custom-size-group");
 const customWidth = document.getElementById("customWidth");
 const customHeight = document.getElementById("customHeight");
+const layerListEl = document.getElementById("layerList");
+const addLayerBtn = document.getElementById("addLayerBtn");
 
 let uploadedImage = null;
 let fitMode = "contain"; // 'contain' または 'cover'
@@ -44,15 +46,156 @@ let hasDragged = false;
 let isTextDragging = false;
 let textDragStartY = 0;
 let textDragStartPosition = 0;
-let lastTextBounds = null; // テキスト描画範囲を保持（ヒットテスト用）
+let draggedLayerIndex = 0;
 let isEyedropperMode = false;
 let isBorderEyedropperMode = false;
 let originalFontColor = "#ffffff";
 let originalBorderColor = "#000000";
 
+// テキストレイヤーのデータモデル
+let textLayers = [
+    {
+        id: 0,
+        text: '',
+        fontSize: 60,
+        fontColor: '#ffffff',
+        borderColor: '#000000',
+        textPosition: 50,
+        textShadow: true,
+        textStrokeWidth: 0,
+        bounds: null
+    }
+];
+let activeLayerIndex = 0;
+let nextLayerId = 1;
+
+// レイヤーデフォルト値
+function createDefaultLayer() {
+    return {
+        id: nextLayerId++,
+        text: '',
+        fontSize: 60,
+        fontColor: '#ffffff',
+        borderColor: '#000000',
+        textPosition: 50,
+        textShadow: true,
+        textStrokeWidth: 0,
+        bounds: null
+    };
+}
+
+// アクティブレイヤーのデータからUIコントロールに反映
+function syncControlsToLayer(index) {
+    const layer = textLayers[index];
+    if (!layer) return;
+    titleText.value = layer.text;
+    fontSize.value = layer.fontSize;
+    fontSizeValue.textContent = layer.fontSize;
+    fontColor.value = layer.fontColor;
+    fontColorHex.value = layer.fontColor;
+    borderColor.value = layer.borderColor;
+    borderColorHex.value = layer.borderColor;
+    textPosition.value = layer.textPosition;
+    textPositionValue.textContent = layer.textPosition;
+    textShadow.checked = layer.textShadow;
+    textStrokeWidth.value = layer.textStrokeWidth;
+    textStrokeWidthValue.textContent = layer.textStrokeWidth;
+}
+
+// UIコントロールの値をアクティブレイヤーのデータに反映
+function syncLayerFromControls(index) {
+    const layer = textLayers[index];
+    if (!layer) return;
+    layer.text = titleText.value;
+    layer.fontSize = parseInt(fontSize.value);
+    layer.fontColor = fontColor.value;
+    layer.borderColor = borderColor.value;
+    layer.textPosition = parseInt(textPosition.value);
+    layer.textShadow = textShadow.checked;
+    layer.textStrokeWidth = parseInt(textStrokeWidth.value);
+}
+
+// レイヤーリストのUI描画
+function renderLayerList() {
+    layerListEl.innerHTML = '';
+    textLayers.forEach((layer, index) => {
+        const item = document.createElement('div');
+        item.className = 'layer-item' + (index === activeLayerIndex ? ' active' : '');
+
+        const label = document.createElement('span');
+        label.className = 'layer-label';
+        const preview = layer.text.split('\n')[0] || `テキスト ${index + 1}`;
+        label.textContent = preview.substring(0, 20) || `テキスト ${index + 1}`;
+        label.style.color = layer.fontColor;
+        label.style.textShadow = '0 0 2px rgba(0,0,0,0.5)';
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'layer-delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.title = '削除';
+        deleteBtn.disabled = textLayers.length <= 1;
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeLayer(index);
+        };
+
+        item.onclick = () => selectLayer(index);
+        item.appendChild(label);
+        item.appendChild(deleteBtn);
+        layerListEl.appendChild(item);
+    });
+}
+
+// レイヤーを選択
+function selectLayer(index) {
+    // 現在の値を保存してから切り替え
+    syncLayerFromControls(activeLayerIndex);
+    activeLayerIndex = index;
+    syncControlsToLayer(index);
+    renderLayerList();
+}
+
+// レイヤーを追加（直前のレイヤーのスタイルをコピー）
+function addLayer() {
+    const newLayer = createDefaultLayer();
+    // 最後のレイヤーからスタイルをコピー
+    const lastLayer = textLayers[textLayers.length - 1];
+    if (lastLayer) {
+        newLayer.fontSize = lastLayer.fontSize;
+        newLayer.fontColor = lastLayer.fontColor;
+        newLayer.borderColor = lastLayer.borderColor;
+        newLayer.textShadow = lastLayer.textShadow;
+        newLayer.textStrokeWidth = lastLayer.textStrokeWidth;
+    }
+    textLayers.push(newLayer);
+    selectLayer(textLayers.length - 1);
+    drawCanvas();
+    saveSettingsToURL();
+}
+
+// レイヤーを削除
+function removeLayer(index) {
+    if (textLayers.length <= 1) return;
+    textLayers.splice(index, 1);
+    if (activeLayerIndex >= textLayers.length) {
+        activeLayerIndex = textLayers.length - 1;
+    } else if (activeLayerIndex > index) {
+        activeLayerIndex--;
+    }
+    syncControlsToLayer(activeLayerIndex);
+    renderLayerList();
+    drawCanvas();
+    saveSettingsToURL();
+}
+
+// レイヤー追加ボタン
+addLayerBtn.addEventListener("click", addLayer);
+
 // フォントサイズスライダーの値を表示
 fontSize.addEventListener("input", (e) => {
     fontSizeValue.textContent = e.target.value;
+    syncLayerFromControls(activeLayerIndex);
+    renderLayerList();
     drawCanvas();
     saveSettingsToURL();
 });
@@ -71,7 +214,7 @@ textPadding.addEventListener("input", (e) => {
     saveSettingsToURL();
 });
 
-// 文字背景の透明度スライダーの値を表示
+// スモーク（背景を暗く）スライダーの値を表示
 textBackgroundOpacity.addEventListener("input", (e) => {
     textBackgroundOpacityValue.textContent = e.target.value;
     drawCanvas();
@@ -81,6 +224,8 @@ textBackgroundOpacity.addEventListener("input", (e) => {
 // 文字枠線の太さスライダーの値を表示
 textStrokeWidth.addEventListener("input", (e) => {
     textStrokeWidthValue.textContent = e.target.value;
+    syncLayerFromControls(activeLayerIndex);
+    renderLayerList();
     drawCanvas();
     saveSettingsToURL();
 });
@@ -141,6 +286,8 @@ fontColor.addEventListener("input", (e) => {
     const complementary = getComplementaryColor(color);
     borderColor.value = complementary;
     borderColorHex.value = complementary;
+    syncLayerFromControls(activeLayerIndex);
+    renderLayerList();
     drawCanvas();
     saveSettingsToURL();
 });
@@ -158,6 +305,8 @@ fontColorHex.addEventListener("input", (e) => {
         const complementary = getComplementaryColor(value);
         borderColor.value = complementary;
         borderColorHex.value = complementary;
+        syncLayerFromControls(activeLayerIndex);
+        renderLayerList();
         drawCanvas();
         saveSettingsToURL();
     }
@@ -166,6 +315,8 @@ fontColorHex.addEventListener("input", (e) => {
 // 枠色が変更された時の処理
 borderColor.addEventListener("input", (e) => {
     borderColorHex.value = e.target.value;
+    syncLayerFromControls(activeLayerIndex);
+    renderLayerList();
     drawCanvas();
     saveSettingsToURL();
 });
@@ -180,19 +331,27 @@ borderColorHex.addEventListener("input", (e) => {
 
     if (isValidHex(value)) {
         borderColor.value = value;
+        syncLayerFromControls(activeLayerIndex);
+        renderLayerList();
         drawCanvas();
         saveSettingsToURL();
     }
 });
 
 // その他のコントロールのイベントリスナー
-titleText.addEventListener("input", drawCanvas);
+titleText.addEventListener("input", () => {
+    syncLayerFromControls(activeLayerIndex);
+    renderLayerList();
+    drawCanvas();
+});
 textPosition.addEventListener("input", (e) => {
     textPositionValue.textContent = e.target.value;
+    syncLayerFromControls(activeLayerIndex);
     drawCanvas();
     saveSettingsToURL();
 });
 textShadow.addEventListener("change", () => {
+    syncLayerFromControls(activeLayerIndex);
     drawCanvas();
     saveSettingsToURL();
 });
@@ -259,11 +418,11 @@ const aspectRatioPresets = {
 function updateCanvasSize(width, height) {
     canvas.width = width;
     canvas.height = height;
-    
+
     // CSSのアスペクト比も更新
     const canvasContainer = document.querySelector('.canvas-container');
     canvasContainer.style.aspectRatio = `${width} / ${height}`;
-    
+
     // 再描画
     drawCanvas();
 }
@@ -296,7 +455,8 @@ const paramMapping = {
     imageOffsetY: 'oy',
     aspectRatio: 'ar',
     customWidth: 'cw',
-    customHeight: 'ch'
+    customHeight: 'ch',
+    textLayers: 'tl'
 };
 
 // 逆マッピング（短縮名 → 長い名前）
@@ -304,24 +464,26 @@ const reverseParamMapping = Object.fromEntries(
     Object.entries(paramMapping).map(([key, value]) => [value, key])
 );
 
-// デフォルト値
+// デフォルト値（グローバル設定用）
 const defaultValues = {
-    fontSize: '60',
-    fontColor: '#ffffff',
-    borderColor: '#000000',
     borderWidth: '0',
-    textPosition: '50',
-    textShadow: true,
-    textBackground: false,
-    textPadding: '20',
     textBackgroundOpacity: '0',
-    textStrokeWidth: '0',
     fitMode: 'contain',
     imageOffsetX: 0,
     imageOffsetY: 0,
     aspectRatio: 'note',
     customWidth: '1280',
     customHeight: '720'
+};
+
+// レイヤーのデフォルト値
+const layerDefaults = {
+    fontSize: 60,
+    fontColor: '#ffffff',
+    borderColor: '#000000',
+    textPosition: 50,
+    textShadow: true,
+    textStrokeWidth: 0
 };
 
 // 色を短縮する関数（例: #ffffff → fff）
@@ -346,64 +508,32 @@ function expandColor(color) {
 // URLパラメータに設定を保存
 function saveSettingsToURL() {
     const params = new URLSearchParams();
-    
-    // 各設定を短縮形で保存（デフォルト値の場合は省略）
-    if (fontSize.value !== defaultValues.fontSize) {
-        params.set(paramMapping.fontSize, fontSize.value);
-    }
-    
-    if (fontColor.value !== defaultValues.fontColor) {
-        params.set(paramMapping.fontColor, compressColor(fontColor.value));
-    }
-    
-    if (borderColor.value !== defaultValues.borderColor) {
-        params.set(paramMapping.borderColor, compressColor(borderColor.value));
-    }
-    
+
+    // グローバル設定
     if (borderWidth.value !== defaultValues.borderWidth) {
         params.set(paramMapping.borderWidth, borderWidth.value);
     }
-    
-    if (textPosition.value !== defaultValues.textPosition) {
-        params.set(paramMapping.textPosition, textPosition.value);
-    }
-    
-    if (textShadow.checked !== defaultValues.textShadow) {
-        params.set(paramMapping.textShadow, textShadow.checked ? '1' : '0');
-    }
-    
-    if (textBackground.checked !== defaultValues.textBackground) {
-        params.set(paramMapping.textBackground, textBackground.checked ? '1' : '0');
-    }
-    
-    if (textPadding.value !== defaultValues.textPadding) {
-        params.set(paramMapping.textPadding, textPadding.value);
-    }
-    
+
     if (textBackgroundOpacity.value !== defaultValues.textBackgroundOpacity) {
         params.set(paramMapping.textBackgroundOpacity, textBackgroundOpacity.value);
     }
-    
-    if (textStrokeWidth.value !== defaultValues.textStrokeWidth) {
-        params.set(paramMapping.textStrokeWidth, textStrokeWidth.value);
-    }
-    
+
     if (fitMode !== defaultValues.fitMode) {
         params.set(paramMapping.fitMode, fitMode === 'contain' ? 'c' : 'v');
     }
-    
+
     if (imageOffsetX !== defaultValues.imageOffsetX) {
         params.set(paramMapping.imageOffsetX, imageOffsetX);
     }
-    
+
     if (imageOffsetY !== defaultValues.imageOffsetY) {
         params.set(paramMapping.imageOffsetY, imageOffsetY);
     }
-    
+
     if (aspectRatio.value !== defaultValues.aspectRatio) {
         params.set(paramMapping.aspectRatio, aspectRatio.value);
     }
-    
+
     if (aspectRatio.value === 'custom') {
         if (customWidth.value !== defaultValues.customWidth) {
             params.set(paramMapping.customWidth, customWidth.value);
@@ -411,6 +541,25 @@ function saveSettingsToURL() {
         if (customHeight.value !== defaultValues.customHeight) {
             params.set(paramMapping.customHeight, customHeight.value);
         }
+    }
+
+    // テキストレイヤーをシリアライズ
+    const layersData = textLayers.map(layer => {
+        const obj = {};
+        if (layer.text) obj.t = layer.text;
+        if (layer.fontSize !== layerDefaults.fontSize) obj.fs = layer.fontSize;
+        if (layer.fontColor !== layerDefaults.fontColor) obj.fc = compressColor(layer.fontColor);
+        if (layer.borderColor !== layerDefaults.borderColor) obj.bc = compressColor(layer.borderColor);
+        if (layer.textPosition !== layerDefaults.textPosition) obj.tp = layer.textPosition;
+        if (layer.textShadow !== layerDefaults.textShadow) obj.ts = layer.textShadow ? 1 : 0;
+        if (layer.textStrokeWidth !== layerDefaults.textStrokeWidth) obj.sw = layer.textStrokeWidth;
+        return obj;
+    });
+
+    // 意味のあるデータがある場合のみ保存
+    const hasData = layersData.length > 1 || layersData.some(obj => Object.keys(obj).length > 0);
+    if (hasData) {
+        params.set(paramMapping.textLayers, JSON.stringify(layersData));
     }
 
     const queryString = params.toString();
@@ -421,7 +570,7 @@ function saveSettingsToURL() {
 // URLパラメータから設定を読み込み
 function loadSettingsFromURL() {
     const params = new URLSearchParams(window.location.search);
-    
+
     // パラメータを確認する関数（短縮形と旧形式の両方をチェック）
     const getParam = (longName) => {
         const shortName = paramMapping[longName];
@@ -433,29 +582,7 @@ function loadSettingsFromURL() {
         return null;
     };
 
-    // fontSize
-    const fontSizeParam = getParam('fontSize');
-    if (fontSizeParam !== null) {
-        fontSize.value = fontSizeParam;
-        fontSizeValue.textContent = fontSizeParam;
-    }
-
-    // fontColor
-    const fontColorParam = getParam('fontColor');
-    if (fontColorParam !== null) {
-        const color = expandColor(fontColorParam);
-        fontColor.value = color;
-        fontColorHex.value = color;
-    }
-
-    // borderColor
-    const borderColorParam = getParam('borderColor');
-    if (borderColorParam !== null) {
-        const color = expandColor(borderColorParam);
-        borderColor.value = color;
-        borderColorHex.value = color;
-    }
-
+    // グローバル設定の読み込み
     // borderWidth
     const borderWidthParam = getParam('borderWidth');
     if (borderWidthParam !== null) {
@@ -463,59 +590,16 @@ function loadSettingsFromURL() {
         borderWidthValue.textContent = borderWidthParam;
     }
 
-    // textPosition
-    const textPositionParam = getParam('textPosition');
-    if (textPositionParam !== null) {
-        // 旧形式の互換性を保つ
-        if (textPositionParam === 't' || textPositionParam === 'top') {
-            textPosition.value = '20';
-        } else if (textPositionParam === 'c' || textPositionParam === 'center') {
-            textPosition.value = '50';
-        } else if (textPositionParam === 'b' || textPositionParam === 'bottom') {
-            textPosition.value = '80';
-        } else {
-            textPosition.value = textPositionParam;
-        }
-        textPositionValue.textContent = textPosition.value;
-    }
-
-    // textShadow
-    const textShadowValue = getParam('textShadow');
-    if (textShadowValue !== null) {
-        textShadow.checked = textShadowValue === '1' || textShadowValue === 'true';
-    }
-
-    // textBackground
-    const textBackgroundValue = getParam('textBackground');
-    if (textBackgroundValue !== null) {
-        textBackground.checked = textBackgroundValue === '1' || textBackgroundValue === 'true';
-    }
-
-    // textPadding
-    const textPaddingParam = getParam('textPadding');
-    if (textPaddingParam !== null) {
-        textPadding.value = textPaddingParam;
-        textPaddingValue.textContent = textPaddingParam;
-    }
-
-    // textBackgroundOpacity
+    // textBackgroundOpacity (スモーク)
     const textBackgroundOpacityParam = getParam('textBackgroundOpacity');
     if (textBackgroundOpacityParam !== null) {
         textBackgroundOpacity.value = textBackgroundOpacityParam;
         textBackgroundOpacityValue.textContent = textBackgroundOpacityParam;
     }
 
-    // textStrokeWidth
-    const textStrokeWidthParam = getParam('textStrokeWidth');
-    if (textStrokeWidthParam !== null) {
-        textStrokeWidth.value = textStrokeWidthParam;
-        textStrokeWidthValue.textContent = textStrokeWidthParam;
-    }
-
     // fitMode
     const fitModeValue = getParam('fitMode');
     if (fitModeValue !== null) {
-        // 短縮形の場合は展開
         if (fitModeValue === 'c') {
             fitMode = 'contain';
         } else if (fitModeValue === 'v') {
@@ -536,7 +620,7 @@ function loadSettingsFromURL() {
     if (imageOffsetYValue !== null) {
         imageOffsetY = parseFloat(imageOffsetYValue);
     }
-    
+
     // aspectRatio
     const aspectRatioValue = getParam('aspectRatio');
     if (aspectRatioValue !== null) {
@@ -545,18 +629,79 @@ function loadSettingsFromURL() {
             customSizeGroup.style.display = 'block';
         }
     }
-    
+
     // customWidth
     const customWidthValue = getParam('customWidth');
     if (customWidthValue !== null) {
         customWidth.value = customWidthValue;
     }
-    
+
     // customHeight
     const customHeightValue = getParam('customHeight');
     if (customHeightValue !== null) {
         customHeight.value = customHeightValue;
     }
+
+    // テキストレイヤーの読み込み
+    const layersParam = getParam('textLayers');
+    if (layersParam) {
+        // 新形式: JSON配列
+        try {
+            const layersData = JSON.parse(layersParam);
+            textLayers = layersData.map((data, i) => ({
+                id: i,
+                text: data.t || '',
+                fontSize: data.fs !== undefined ? data.fs : layerDefaults.fontSize,
+                fontColor: data.fc ? expandColor(data.fc) : layerDefaults.fontColor,
+                borderColor: data.bc ? expandColor(data.bc) : layerDefaults.borderColor,
+                textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
+                textShadow: data.ts !== undefined ? !!data.ts : layerDefaults.textShadow,
+                textStrokeWidth: data.sw !== undefined ? data.sw : layerDefaults.textStrokeWidth,
+                bounds: null
+            }));
+            nextLayerId = textLayers.length;
+            activeLayerIndex = 0;
+        } catch (e) {
+            // パース失敗時はデフォルト
+        }
+    } else {
+        // 旧形式: 個別パラメータから単一レイヤーとして読み込み
+        const layer = textLayers[0];
+
+        const fontSizeParam = getParam('fontSize');
+        if (fontSizeParam !== null) layer.fontSize = parseInt(fontSizeParam);
+
+        const fontColorParam = getParam('fontColor');
+        if (fontColorParam !== null) layer.fontColor = expandColor(fontColorParam);
+
+        const borderColorParam = getParam('borderColor');
+        if (borderColorParam !== null) layer.borderColor = expandColor(borderColorParam);
+
+        const textPositionParam = getParam('textPosition');
+        if (textPositionParam !== null) {
+            if (textPositionParam === 't' || textPositionParam === 'top') {
+                layer.textPosition = 20;
+            } else if (textPositionParam === 'c' || textPositionParam === 'center') {
+                layer.textPosition = 50;
+            } else if (textPositionParam === 'b' || textPositionParam === 'bottom') {
+                layer.textPosition = 80;
+            } else {
+                layer.textPosition = parseInt(textPositionParam);
+            }
+        }
+
+        const textShadowParam = getParam('textShadow');
+        if (textShadowParam !== null) {
+            layer.textShadow = textShadowParam === '1' || textShadowParam === 'true';
+        }
+
+        const textStrokeWidthParam = getParam('textStrokeWidth');
+        if (textStrokeWidthParam !== null) layer.textStrokeWidth = parseInt(textStrokeWidthParam);
+    }
+
+    // UIに反映
+    syncControlsToLayer(activeLayerIndex);
+    renderLayerList();
 }
 
 // ページ読み込み時に初期化
@@ -573,9 +718,9 @@ function drawCanvas() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    // タイトルテキストの内容をチェック
-    const hasText = titleText.value.trim() !== "";
-    
+    // テキストレイヤーにテキストがあるかチェック
+    const hasText = textLayers.some(l => l.text.trim() !== '');
+
     // 画像がない場合の処理
     if (!uploadedImage) {
         if (hasText) {
@@ -632,14 +777,14 @@ function drawCanvas() {
         x = (canvasWidth - scaledWidth) / 2 + imageOffsetX;
         y = (canvasHeight - scaledHeight) / 2 + imageOffsetY;
 
-    // クリッピング領域を設定
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, canvasWidth, canvasHeight);
-    ctx.clip();
+        // クリッピング領域を設定
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, canvasWidth, canvasHeight);
+        ctx.clip();
 
-    // 画像を描画
-    ctx.drawImage(uploadedImage, x, y, scaledWidth, scaledHeight);
+        // 画像を描画
+        ctx.drawImage(uploadedImage, x, y, scaledWidth, scaledHeight);
         ctx.restore();
 
         // 枠を描画
@@ -665,147 +810,94 @@ function drawCanvas() {
         ctx.restore();
     }
 
-    // テキストがある場合のみ描画
-    const text = titleText.value.trim();
-    lastTextBounds = null;
-    if (text) {
-        // フォント設定
-        const fontSizeVal = fontSize.value;
-        ctx.font = `bold ${fontSizeVal}px 'Noto Sans JP', sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
+    // すべてのテキストレイヤーを描画
+    textLayers.forEach((layer) => {
+        layer.bounds = drawTextLayer(layer);
+    });
+}
 
-        // テキスト位置を計算
-        let textX = canvas.width / 2;
-        // スライダーの値（10-90）をキャンバスの高さに対する比率として使用
-        let textY = canvas.height * (parseInt(textPosition.value) / 100);
+// テキストレイヤーを1つ描画し、boundsを返す
+function drawTextLayer(layer) {
+    const text = layer.text.trim();
+    if (!text) return null;
 
-        // 影を描画
-        if (textShadow.checked) {
-            ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-        }
+    const fontSizeVal = layer.fontSize;
+    ctx.font = `bold ${fontSizeVal}px 'Noto Sans JP', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
 
-        // テキストを描画
-        ctx.fillStyle = fontColor.value;
+    let textX = canvas.width / 2;
+    let textY = canvas.height * (layer.textPosition / 100);
 
-        // 改行で分割
-        const lines = text.split("\n");
-        const lineHeight = parseInt(fontSizeVal) * 1.2;
-
-        // 各行を幅に収まるように分割
-        const wrappedLines = [];
-        const maxWidth = canvas.width * 0.9;
-
-        lines.forEach((line) => {
-            if (line.trim() === "") {
-                wrappedLines.push("");
-            } else {
-                const subLines = getLines(ctx, line, maxWidth);
-                wrappedLines.push(...subLines);
-            }
-        });
-
-        // 複数行の場合は中央揃えになるよう調整
-        const totalHeight = wrappedLines.length * lineHeight;
-        const startY = textY - totalHeight / 2 + lineHeight / 2;
-
-        // 各行の幅を計測して最大幅を取得（ヒットテスト用にも使用）
-        let maxTextWidthForBounds = 0;
-        wrappedLines.forEach((line) => {
-            if (line.trim() !== "") {
-                const tw = ctx.measureText(line).width;
-                maxTextWidthForBounds = Math.max(maxTextWidthForBounds, tw);
-            }
-        });
-        const hitPadding = 30; // ヒット判定の余白
-        lastTextBounds = {
-            x: textX - maxTextWidthForBounds / 2 - hitPadding,
-            y: startY - lineHeight / 2 - hitPadding,
-            width: maxTextWidthForBounds + hitPadding * 2,
-            height: totalHeight + hitPadding * 2
-        };
-
-        // 文字背景を描画
-        if (textBackground.checked) {
-            const padding = parseInt(textPadding.value);
-            ctx.save();
-
-            // 各行の幅を計測して最大幅を取得
-            let maxTextWidth = 0;
-            wrappedLines.forEach((line) => {
-                if (line.trim() !== "") {
-                    const textWidth = ctx.measureText(line).width;
-                    maxTextWidth = Math.max(maxTextWidth, textWidth);
-                }
-            });
-
-            // 背景の描画位置とサイズを計算
-            const bgX = textX - maxTextWidth / 2 - padding;
-            const bgY = startY - lineHeight / 2 - padding;
-            const bgWidth = maxTextWidth + padding * 2;
-            const bgHeight = totalHeight + padding * 2;
-            const borderRadius = 10;
-
-            // 角丸四角形を描画
-            ctx.fillStyle = borderColor.value;
-            ctx.globalAlpha = textBackgroundOpacity.value / 100; // 透明度を適用
-            ctx.beginPath();
-            ctx.moveTo(bgX + borderRadius, bgY);
-            ctx.lineTo(bgX + bgWidth - borderRadius, bgY);
-            ctx.arcTo(
-                bgX + bgWidth,
-                bgY,
-                bgX + bgWidth,
-                bgY + borderRadius,
-                borderRadius
-            );
-            ctx.lineTo(bgX + bgWidth, bgY + bgHeight - borderRadius);
-            ctx.arcTo(
-                bgX + bgWidth,
-                bgY + bgHeight,
-                bgX + bgWidth - borderRadius,
-                bgY + bgHeight,
-                borderRadius
-            );
-            ctx.lineTo(bgX + borderRadius, bgY + bgHeight);
-            ctx.arcTo(
-                bgX,
-                bgY + bgHeight,
-                bgX,
-                bgY + bgHeight - borderRadius,
-                borderRadius
-            );
-            ctx.lineTo(bgX, bgY + borderRadius);
-            ctx.arcTo(bgX, bgY, bgX + borderRadius, bgY, borderRadius);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // テキストを描画
-        ctx.fillStyle = fontColor.value;
-        wrappedLines.forEach((line, index) => {
-            if (line.trim() !== "") {
-                // 枠線を描画（fillTextより先に描画）
-                if (parseInt(textStrokeWidth.value) > 0) {
-                    ctx.strokeStyle = borderColor.value;
-                    ctx.lineWidth = parseInt(textStrokeWidth.value);
-                    ctx.strokeText(line, textX, startY + index * lineHeight);
-                }
-                // 文字を描画
-                ctx.fillText(line, textX, startY + index * lineHeight);
-            }
-        });
-
-        // 影をリセット
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
+    // 影を描画
+    if (layer.textShadow) {
+        ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
     }
+
+    ctx.fillStyle = layer.fontColor;
+
+    // 改行で分割
+    const lines = text.split("\n");
+    const lineHeight = fontSizeVal * 1.2;
+
+    // 各行を幅に収まるように分割
+    const wrappedLines = [];
+    const maxWidth = canvas.width * 0.9;
+
+    lines.forEach((line) => {
+        if (line.trim() === "") {
+            wrappedLines.push("");
+        } else {
+            const subLines = getLines(ctx, line, maxWidth);
+            wrappedLines.push(...subLines);
+        }
+    });
+
+    // 複数行の場合は中央揃えになるよう調整
+    const totalHeight = wrappedLines.length * lineHeight;
+    const startY = textY - totalHeight / 2 + lineHeight / 2;
+
+    // 各行の幅を計測して最大幅を取得（ヒットテスト用）
+    let maxTextWidth = 0;
+    wrappedLines.forEach((line) => {
+        if (line.trim() !== "") {
+            const tw = ctx.measureText(line).width;
+            maxTextWidth = Math.max(maxTextWidth, tw);
+        }
+    });
+    const hitPadding = 30;
+    const bounds = {
+        x: textX - maxTextWidth / 2 - hitPadding,
+        y: startY - lineHeight / 2 - hitPadding,
+        width: maxTextWidth + hitPadding * 2,
+        height: totalHeight + hitPadding * 2
+    };
+
+    // テキストを描画
+    ctx.fillStyle = layer.fontColor;
+    wrappedLines.forEach((line, index) => {
+        if (line.trim() !== "") {
+            // 枠線を描画（fillTextより先に描画）
+            if (layer.textStrokeWidth > 0) {
+                ctx.strokeStyle = layer.borderColor;
+                ctx.lineWidth = layer.textStrokeWidth;
+                ctx.strokeText(line, textX, startY + index * lineHeight);
+            }
+            // 文字を描画
+            ctx.fillText(line, textX, startY + index * lineHeight);
+        }
+    });
+
+    // 影をリセット
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    return bounds;
 }
 
 // テキストを改行して配列で返す
@@ -864,17 +956,17 @@ function getLines(ctx, text, maxWidth) {
 // 設定履歴を保存する関数
 function saveToHistory() {
     const settings = {
-        titleText: titleText.value,
-        fontSize: fontSize.value,
-        fontColor: fontColor.value,
-        borderColor: borderColor.value,
+        textLayers: textLayers.map(l => ({
+            text: l.text,
+            fontSize: l.fontSize,
+            fontColor: l.fontColor,
+            borderColor: l.borderColor,
+            textPosition: l.textPosition,
+            textShadow: l.textShadow,
+            textStrokeWidth: l.textStrokeWidth
+        })),
         borderWidth: borderWidth.value,
-        textPosition: textPosition.value,
-        textShadow: textShadow.checked,
-        textBackground: textBackground.checked,
-        textPadding: textPadding.value,
         textBackgroundOpacity: textBackgroundOpacity.value,
-        textStrokeWidth: textStrokeWidth.value,
         aspectRatio: aspectRatio.value,
         customWidth: customWidth.value,
         customHeight: customHeight.value,
@@ -883,26 +975,31 @@ function saveToHistory() {
 
     // localStorage から履歴を取得
     let history = JSON.parse(localStorage.getItem('titleImageHistory') || '[]');
-    
+
     // 重複を避けるため、同じ設定が既にあるかチェック
-    const isDuplicate = history.some(item => 
-        item.titleText === settings.titleText &&
-        item.fontSize === settings.fontSize &&
-        item.fontColor === settings.fontColor
-    );
+    const firstLayerText = textLayers[0] ? textLayers[0].text : '';
+    const firstLayerSize = textLayers[0] ? textLayers[0].fontSize : 60;
+    const isDuplicate = history.some(item => {
+        if (item.textLayers) {
+            return item.textLayers[0] && item.textLayers[0].text === firstLayerText &&
+                   item.textLayers[0].fontSize === firstLayerSize;
+        }
+        // 旧形式との比較
+        return item.titleText === firstLayerText && item.fontSize === String(firstLayerSize);
+    });
 
     if (!isDuplicate) {
         // 新しい設定を履歴の先頭に追加
         history.unshift(settings);
-        
+
         // 履歴は最大20件まで保持
         if (history.length > 20) {
             history = history.slice(0, 20);
         }
-        
+
         // localStorage に保存
         localStorage.setItem('titleImageHistory', JSON.stringify(history));
-        
+
         // 履歴表示を更新
         displayHistory();
     }
@@ -918,37 +1015,46 @@ function displayHistory() {
         historyItem.className = 'history-item';
         historyItem.dataset.index = index;
 
+        // 旧形式・新形式の両方に対応
+        let displayText, displayColor, displaySize, hasShadow, hasStroke, strokeColor;
+        if (item.textLayers && item.textLayers.length > 0) {
+            const first = item.textLayers[0];
+            displayText = first.text || '(テキストなし)';
+            displayColor = first.fontColor;
+            displaySize = first.fontSize;
+            hasShadow = first.textShadow;
+            hasStroke = first.textStrokeWidth > 0;
+            strokeColor = first.borderColor;
+        } else {
+            displayText = item.titleText || '(テキストなし)';
+            displayColor = item.fontColor;
+            displaySize = item.fontSize;
+            hasShadow = item.textShadow;
+            hasStroke = item.textStrokeWidth > 0;
+            strokeColor = item.borderColor;
+        }
+
         const text = document.createElement('div');
         text.className = 'history-item-text';
-        text.textContent = item.titleText || '(テキストなし)';
-        
-        // 保存された設定をテキストに適用
-        text.style.color = item.fontColor;
-        text.style.fontSize = '14px'; // 履歴表示用の固定サイズ
+        text.textContent = displayText;
+        text.style.color = displayColor;
+        text.style.fontSize = '14px';
         text.style.fontWeight = 'bold';
-        
-        // 文字に影をつける
-        if (item.textShadow) {
+
+        if (hasShadow) {
             text.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
         }
-        
-        // 文字に背景をつける
-        if (item.textBackground) {
-            const opacity = item.textBackgroundOpacity / 100;
-            text.style.backgroundColor = `rgba(0, 0, 0, ${opacity})`;
-            text.style.padding = '5px 8px';
-            text.style.borderRadius = '4px';
-            text.style.marginBottom = '8px';
-        }
-        
-        // 文字に枠線をつける
-        if (item.textStrokeWidth > 0) {
-            text.style.webkitTextStroke = `${Math.min(item.textStrokeWidth / 4, 1)}px ${item.borderColor}`;
+
+        if (hasStroke) {
+            text.style.webkitTextStroke = `${Math.min(parseInt(hasStroke) / 4, 1)}px ${strokeColor}`;
         }
 
         const details = document.createElement('div');
         details.className = 'history-item-details';
-        details.textContent = `${item.fontSize}px`;
+        details.textContent = `${displaySize}px`;
+        if (item.textLayers && item.textLayers.length > 1) {
+            details.textContent += ` / ${item.textLayers.length}レイヤー`;
+        }
 
         const date = document.createElement('div');
         date.className = 'history-item-date';
@@ -976,39 +1082,48 @@ function displayHistory() {
 
 // 履歴項目を読み込む関数
 function loadHistoryItem(item) {
-    // テキスト自体は反映させない
-    // titleText.value = item.titleText;
-    
-    // 装飾設定のみ反映
-    fontSize.value = item.fontSize;
-    fontSizeValue.textContent = item.fontSize;
-    fontColor.value = item.fontColor;
-    fontColorHex.value = item.fontColor;
-    borderColor.value = item.borderColor;
-    borderColorHex.value = item.borderColor;
-    borderWidth.value = item.borderWidth;
-    borderWidthValue.textContent = item.borderWidth;
-    // 旧形式の互換性を保つ
-    if (item.textPosition === 'top') {
-        textPosition.value = '20';
-    } else if (item.textPosition === 'center') {
-        textPosition.value = '50';
-    } else if (item.textPosition === 'bottom') {
-        textPosition.value = '80';
+    if (item.textLayers && item.textLayers.length > 0) {
+        // 新形式
+        textLayers = item.textLayers.map((l, i) => ({
+            id: i,
+            text: l.text || '',
+            fontSize: l.fontSize || 60,
+            fontColor: l.fontColor || '#ffffff',
+            borderColor: l.borderColor || '#000000',
+            textPosition: l.textPosition !== undefined ? l.textPosition : 50,
+            textShadow: l.textShadow !== undefined ? l.textShadow : true,
+            textStrokeWidth: l.textStrokeWidth || 0,
+            bounds: null
+        }));
+        nextLayerId = textLayers.length;
+        activeLayerIndex = 0;
     } else {
-        textPosition.value = item.textPosition || '50';
+        // 旧形式: 単一レイヤーとして読み込み
+        const pos = item.textPosition === 'top' ? 20 :
+                     item.textPosition === 'center' ? 50 :
+                     item.textPosition === 'bottom' ? 80 :
+                     parseInt(item.textPosition) || 50;
+        textLayers = [{
+            id: 0,
+            text: '', // テキスト自体は反映させない（旧動作と同じ）
+            fontSize: parseInt(item.fontSize) || 60,
+            fontColor: item.fontColor || '#ffffff',
+            borderColor: item.borderColor || '#000000',
+            textPosition: pos,
+            textShadow: item.textShadow !== undefined ? item.textShadow : true,
+            textStrokeWidth: parseInt(item.textStrokeWidth) || 0,
+            bounds: null
+        }];
+        nextLayerId = 1;
+        activeLayerIndex = 0;
     }
-    textPositionValue.textContent = textPosition.value;
-    textShadow.checked = item.textShadow;
-    textBackground.checked = item.textBackground;
-    textPadding.value = item.textPadding;
-    textPaddingValue.textContent = item.textPadding;
-    textBackgroundOpacity.value = item.textBackgroundOpacity;
-    textBackgroundOpacityValue.textContent = item.textBackgroundOpacity;
-    textStrokeWidth.value = item.textStrokeWidth;
-    textStrokeWidthValue.textContent = item.textStrokeWidth;
-    
-    // 縦横比設定を反映
+
+    // グローバル設定
+    borderWidth.value = item.borderWidth || '0';
+    borderWidthValue.textContent = borderWidth.value;
+    textBackgroundOpacity.value = item.textBackgroundOpacity || '0';
+    textBackgroundOpacityValue.textContent = textBackgroundOpacity.value;
+
     if (item.aspectRatio) {
         aspectRatio.value = item.aspectRatio;
         if (item.aspectRatio === 'custom') {
@@ -1020,7 +1135,9 @@ function loadHistoryItem(item) {
         }
     }
 
-    initCanvas(); // キャンバスサイズを更新
+    syncControlsToLayer(activeLayerIndex);
+    renderLayerList();
+    initCanvas();
     drawCanvas();
     saveSettingsToURL();
 }
@@ -1035,8 +1152,7 @@ function deleteHistoryItem(index) {
 
 // ダウンロード処理
 downloadBtn.addEventListener("click", () => {
-    // テキストがある場合またはアップロードされた画像がある場合のみ実行
-    const hasText = titleText.value.trim() !== "";
+    const hasText = textLayers.some(l => l.text.trim() !== '');
     if (!uploadedImage && !hasText) return;
 
     // 履歴に保存
@@ -1057,8 +1173,7 @@ downloadBtn.addEventListener("click", () => {
 
 // 画像コピー処理
 copyImageBtn.addEventListener("click", async () => {
-    // テキストがある場合またはアップロードされた画像がある場合のみ実行
-    const hasText = titleText.value.trim() !== "";
+    const hasText = textLayers.some(l => l.text.trim() !== '');
     if (!uploadedImage && !hasText) return;
 
     // 履歴に保存
@@ -1088,7 +1203,7 @@ copyImageBtn.addEventListener("click", async () => {
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const day = String(now.getDate()).padStart(2, '0');
                 const filename = `Morimaru-${year}${month}${day}.png`;
-                
+
                 const link = document.createElement("a");
                 link.download = filename;
                 link.href = canvas.toDataURL();
@@ -1109,7 +1224,7 @@ copyImageBtn.addEventListener("click", async () => {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const filename = `Morimaru-${year}${month}${day}.png`;
-        
+
         const link = document.createElement("a");
         link.download = filename;
         link.href = canvas.toDataURL();
@@ -1165,18 +1280,21 @@ clearBtn.addEventListener("click", () => {
         // 画像をクリア
         uploadedImage = null;
         imageUpload.value = "";
-        
-        // テキストをクリア
-        titleText.value = "";
-        
+
+        // テキストレイヤーをリセット
+        textLayers = [createDefaultLayer()];
+        activeLayerIndex = 0;
+        syncControlsToLayer(0);
+        renderLayerList();
+
         // 画像オフセットをリセット
         imageOffsetX = 0;
         imageOffsetY = 0;
         fitMode = "contain";
-        
+
         // キャンバスを再描画
         drawCanvas();
-        
+
         // URLを更新
         saveSettingsToURL();
     }
@@ -1193,37 +1311,41 @@ canvas.addEventListener("click", (e) => {
         const scaleY = canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
-        
+
         // キャンバスから色を取得
         const pixelData = ctx.getImageData(x, y, 1, 1).data;
         const r = pixelData[0];
         const g = pixelData[1];
         const b = pixelData[2];
-        
+
         // RGBをHEXに変換
         const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-        
+
         // 色を設定
         fontColor.value = hex;
         fontColorHex.value = hex;
         const complementary = getComplementaryColor(hex);
         borderColor.value = complementary;
         borderColorHex.value = complementary;
-        
+
+        // アクティブレイヤーに反映
+        syncLayerFromControls(activeLayerIndex);
+
         // スポイトモードを終了（色は確定）
         isEyedropperMode = false;
         eyedropperBtn.classList.remove("active");
         canvas.classList.remove("canvas-eyedropper");
-        
+
         // 新しい色を元の色として更新
         originalFontColor = hex;
         originalBorderColor = complementary;
-        
+
+        renderLayerList();
         drawCanvas();
         saveSettingsToURL();
         return;
     }
-    
+
     // 枠色スポイトモードの場合は色を取得
     if (isBorderEyedropperMode) {
         const rect = canvas.getBoundingClientRect();
@@ -1231,28 +1353,32 @@ canvas.addEventListener("click", (e) => {
         const scaleY = canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
-        
+
         // キャンバスから色を取得
         const pixelData = ctx.getImageData(x, y, 1, 1).data;
         const r = pixelData[0];
         const g = pixelData[1];
         const b = pixelData[2];
-        
+
         // RGBをHEXに変換
         const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-        
+
         // 色を設定
         borderColor.value = hex;
         borderColorHex.value = hex;
-        
+
+        // アクティブレイヤーに反映
+        syncLayerFromControls(activeLayerIndex);
+
         // スポイトモードを終了（色は確定）
         isBorderEyedropperMode = false;
         borderEyedropperBtn.classList.remove("active");
         canvas.classList.remove("canvas-eyedropper");
-        
+
         // 新しい色を元の色として更新
         originalBorderColor = hex;
-        
+
+        renderLayerList();
         drawCanvas();
         saveSettingsToURL();
         return;
@@ -1276,17 +1402,31 @@ canvas.addEventListener("mousedown", (e) => {
     const canvasX = (e.clientX - rect.left) * scaleX;
     const canvasY = (e.clientY - rect.top) * scaleY;
 
-    // テキスト領域をクリックした場合はテキスト位置ドラッグ開始
-    if (lastTextBounds &&
-        canvasX >= lastTextBounds.x && canvasX <= lastTextBounds.x + lastTextBounds.width &&
-        canvasY >= lastTextBounds.y && canvasY <= lastTextBounds.y + lastTextBounds.height) {
-        isTextDragging = true;
-        textDragStartY = e.clientY;
-        textDragStartPosition = parseInt(textPosition.value);
-        hasDragged = false;
-        canvas.style.cursor = "ns-resize";
-        e.preventDefault();
-        return;
+    // テキストレイヤーのヒットテスト（上のレイヤーから逆順にチェック）
+    for (let i = textLayers.length - 1; i >= 0; i--) {
+        const layer = textLayers[i];
+        if (layer.bounds &&
+            canvasX >= layer.bounds.x && canvasX <= layer.bounds.x + layer.bounds.width &&
+            canvasY >= layer.bounds.y && canvasY <= layer.bounds.y + layer.bounds.height) {
+
+            isTextDragging = true;
+            draggedLayerIndex = i;
+            textDragStartY = e.clientY;
+            textDragStartPosition = layer.textPosition;
+            hasDragged = false;
+            canvas.style.cursor = "ns-resize";
+
+            // クリックしたレイヤーを選択
+            if (activeLayerIndex !== i) {
+                syncLayerFromControls(activeLayerIndex);
+                activeLayerIndex = i;
+                syncControlsToLayer(i);
+                renderLayerList();
+            }
+
+            e.preventDefault();
+            return;
+        }
     }
 
     // 画像ドラッグ（coverモード時のみ）
@@ -1308,27 +1448,27 @@ canvas.addEventListener("mousemove", (e) => {
         const scaleY = canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
-        
+
         // キャンバスから色を取得
         const pixelData = ctx.getImageData(x, y, 1, 1).data;
         const r = pixelData[0];
         const g = pixelData[1];
         const b = pixelData[2];
-        
+
         // RGBをHEXに変換
         const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-        
+
         // プレビュー表示
         fontColor.value = hex;
         fontColorHex.value = hex;
         const complementary = getComplementaryColor(hex);
         borderColor.value = complementary;
         borderColorHex.value = complementary;
-        
+
         drawCanvas();
         return;
     }
-    
+
     // 枠色スポイトモードでのプレビュー
     if (isBorderEyedropperMode && !isDragging && uploadedImage) {
         const rect = canvas.getBoundingClientRect();
@@ -1336,29 +1476,29 @@ canvas.addEventListener("mousemove", (e) => {
         const scaleY = canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
-        
+
         // キャンバスから色を取得
         const pixelData = ctx.getImageData(x, y, 1, 1).data;
         const r = pixelData[0];
         const g = pixelData[1];
         const b = pixelData[2];
-        
+
         // RGBをHEXに変換
         const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-        
+
         // プレビュー表示
         borderColor.value = hex;
         borderColorHex.value = hex;
-        
+
         drawCanvas();
         return;
     }
-    
+
     // テキスト位置ドラッグ中
     if (isTextDragging) {
+        const layer = textLayers[draggedLayerIndex];
         const deltaY = e.clientY - textDragStartY;
         const rect = canvas.getBoundingClientRect();
-        // ドラッグのピクセル移動量をキャンバス高さに対する%に変換
         const deltaPercent = (deltaY / rect.height) * 100;
         let newPosition = Math.round(textDragStartPosition + deltaPercent);
         newPosition = Math.max(10, Math.min(90, newPosition));
@@ -1367,8 +1507,12 @@ canvas.addEventListener("mousemove", (e) => {
             hasDragged = true;
         }
 
-        textPosition.value = newPosition;
-        textPositionValue.textContent = newPosition;
+        layer.textPosition = newPosition;
+        // アクティブレイヤーならUIも更新
+        if (draggedLayerIndex === activeLayerIndex) {
+            textPosition.value = newPosition;
+            textPositionValue.textContent = newPosition;
+        }
         drawCanvas();
         saveSettingsToURL();
         return;
@@ -1395,8 +1539,8 @@ canvas.addEventListener("mousemove", (e) => {
     imageOffsetY = newOffsetY;
 
     // 画像が画面外に出ないように制限
-    const canvasWidth = 1280;
-    const canvasHeight = 670;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
     const scale = Math.max(
         canvasWidth / uploadedImage.width,
         canvasHeight / uploadedImage.height
@@ -1450,7 +1594,7 @@ canvas.addEventListener("mouseleave", () => {
 // 文字色スポイトツール機能
 eyedropperBtn.addEventListener("click", () => {
     if (!uploadedImage) return;
-    
+
     // 他のスポイトモードを終了
     if (isBorderEyedropperMode) {
         isBorderEyedropperMode = false;
@@ -1459,14 +1603,14 @@ eyedropperBtn.addEventListener("click", () => {
         borderColor.value = originalBorderColor;
         borderColorHex.value = originalBorderColor;
     }
-    
+
     isEyedropperMode = !isEyedropperMode;
-    
+
     if (isEyedropperMode) {
         // 元の色を保存
         originalFontColor = fontColor.value;
         originalBorderColor = borderColor.value;
-        
+
         eyedropperBtn.classList.add("active");
         canvas.classList.add("canvas-eyedropper");
         canvas.style.cursor = "crosshair";
@@ -1476,11 +1620,11 @@ eyedropperBtn.addEventListener("click", () => {
         fontColorHex.value = originalFontColor;
         borderColor.value = originalBorderColor;
         borderColorHex.value = originalBorderColor;
-        
+
         eyedropperBtn.classList.remove("active");
         canvas.classList.remove("canvas-eyedropper");
         canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
-        
+
         drawCanvas();
         saveSettingsToURL();
     }
@@ -1489,7 +1633,7 @@ eyedropperBtn.addEventListener("click", () => {
 // 枠色スポイトツール機能
 borderEyedropperBtn.addEventListener("click", () => {
     if (!uploadedImage) return;
-    
+
     // 他のスポイトモードを終了
     if (isEyedropperMode) {
         isEyedropperMode = false;
@@ -1502,13 +1646,13 @@ borderEyedropperBtn.addEventListener("click", () => {
         borderColor.value = complementary;
         borderColorHex.value = complementary;
     }
-    
+
     isBorderEyedropperMode = !isBorderEyedropperMode;
-    
+
     if (isBorderEyedropperMode) {
         // 元の色を保存
         originalBorderColor = borderColor.value;
-        
+
         borderEyedropperBtn.classList.add("active");
         canvas.classList.add("canvas-eyedropper");
         canvas.style.cursor = "crosshair";
@@ -1516,11 +1660,11 @@ borderEyedropperBtn.addEventListener("click", () => {
         // 元の色に戻す
         borderColor.value = originalBorderColor;
         borderColorHex.value = originalBorderColor;
-        
+
         borderEyedropperBtn.classList.remove("active");
         canvas.classList.remove("canvas-eyedropper");
         canvas.style.cursor = fitMode === "cover" ? "grab" : "pointer";
-        
+
         drawCanvas();
         saveSettingsToURL();
     }
