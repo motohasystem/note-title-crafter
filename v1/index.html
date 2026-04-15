@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja" prefix="og: https://ogp.me/ns#">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サムネ盛丸（モリマル） v1 - noteタイトル画像メーカー | 無料サムネイル作成ツール</title>
+    <meta name="description" content="サムネ盛丸（モリマル）は、noteやブログ記事のタイトル画像・サムネイルを簡単に作成できる無料Webツールです。画像アップロード、テキスト配置、枠線・影の装飾をブラウザだけで完結。OGP画像にも対応。">
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="editor-section">
+            <nav class="controls" aria-label="画像編集コントロール">
+                <div class="control-group">
+                    <label for="aspectRatio">画像の縦横比:</label>
+                    <select id="aspectRatio">
+                        <option value="note">note推奨 (1280×670)</option>
+                        <option value="ogp">OGP画像 (1200×630)</option>
+                        <option value="16:9">16:9 (1280×720)</option>
+                        <option value="1:1">1:1 正方形 (1080×1080)</option>
+                        <option value="4:3">4:3 (1280×960)</option>
+                        <option value="custom">カスタム</option>
+                    </select>
+                </div>
+
+                <div class="control-group custom-size-group" style="display: none;">
+                    <label>カスタムサイズ:</label>
+                    <div class="custom-size-inputs">
+                        <input type="number" id="customWidth" placeholder="幅" min="100" max="2560" value="1280">
+                        <span>×</span>
+                        <input type="number" id="customHeight" placeholder="高さ" min="100" max="2560" value="720">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="titleText">タイトルテキスト:</label>
+                    <textarea id="titleText" placeholder="タイトルを入力&#10;改行で複数行にできます" rows="3"></textarea>
+                </div>
+
+                <div class="control-group">
+                    <label for="fontSize">フォントサイズ:</label>
+                    <input type="range" id="fontSize" min="20" max="300" value="60">
+                    <span id="fontSizeValue">60</span>px
+                </div>
+
+                <div class="control-group">
+                    <label for="fontColor">文字色:</label>
+                    <div class="color-input-group">
+                        <input type="color" id="fontColor" value="#ffffff">
+                        <input type="text" id="fontColorHex" value="#ffffff" placeholder="#ffffff" maxlength="7">
+                        <button type="button" id="eyedropperBtn" class="eyedropper-btn" title="スポイトツール">🎨</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="borderColor">枠の色:</label>
+                    <div class="color-input-group">
+                        <input type="color" id="borderColor" value="#000000">
+                        <input type="text" id="borderColorHex" value="#000000" placeholder="#000000" maxlength="7">
+                        <button type="button" id="borderEyedropperBtn" class="eyedropper-btn" title="スポイトツール">🎨</button>
+                    </div>
+                    <small>文字色を選ぶと自動で補色になります</small>
+                </div>
+
+                <div class="control-group">
+                    <label for="borderWidth">枠の太さ:</label>
+                    <input type="range" id="borderWidth" min="0" max="50" value="0">
+                    <span id="borderWidthValue">0</span>px
+                </div>
+
+                <div class="control-group">
+                    <label for="textPosition">文字位置（上下）:</label>
+                    <input type="range" id="textPosition" min="10" max="90" value="50">
+                    <span id="textPositionValue">50</span>%
+                </div>
+
+                <div class="control-group">
+                    <label for="textShadow">
+                        <input type="checkbox" id="textShadow" checked>
+                        影をつける
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label for="textBackground">
+                        <input type="checkbox" id="textBackground">
+                        文字に背景をつける
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label for="textPadding">文字背景の余白:</label>
+                    <input type="range" id="textPadding" min="5" max="50" value="20">
+                    <span id="textPaddingValue">20</span>px
+                </div>
+
+                <div class="control-group">
+                    <label for="textBackgroundOpacity">文字背景の透明度:</label>
+                    <input type="range" id="textBackgroundOpacity" min="0" max="100" value="80">
+                    <span id="textBackgroundOpacityValue">80</span>%
+                </div>
+
+                <div class="control-group">
+                    <label for="textStrokeWidth">文字枠線の太さ:</label>
+                    <input type="range" id="textStrokeWidth" min="0" max="20" value="0">
+                    <span id="textStrokeWidthValue">0</span>px
+                </div>
+            </nav>
+
+            <main class="preview-section">
+                <header>
+                    <h1>サムネ<ruby>盛丸<rt>モリマル</rt></ruby> <span style="font-size: 0.6em; color: #999;">v1</span></h1>
+                    <p class="site-description">noteやブログのタイトル画像・サムネイルを簡単作成</p>
+                    <p style="text-align: center; margin-bottom: 10px;"><a href="../" style="color: #3498db; text-decoration: none;">← 最新版へ戻る</a></p>
+                </header>
+                <section class="upload-section" aria-label="画像アップロード">
+                    <div class="upload-controls">
+                        <label for="imageUpload" class="upload-label">
+                            画像をアップロード
+                            <input type="file" id="imageUpload" accept="image/*">
+                        </label>
+                        <button id="clearBtn" class="clear-btn">クリア</button>
+                    </div>
+                    <p class="upload-hint">または、画像をコピーして Ctrl+V / Cmd+V で貼り付け</p>
+                </section>
+
+                <section class="canvas-container" aria-label="プレビュー">
+                    <canvas id="canvas" role="img" aria-label="画像プレビュー"></canvas>
+                    <div id="noImageMessage">画像をアップロードしてください</div>
+                </section>
+
+                <section class="button-group" aria-label="エクスポート">
+                    <button id="downloadBtn" class="download-btn" disabled>画像をダウンロード</button>
+                    <button id="copyImageBtn" class="copy-image-btn" disabled>画像をコピー</button>
+                    <button id="copyUrlBtn" class="copy-url-btn">設定URLをコピー</button>
+                </section>
+
+                <footer style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+                    <p>Version 1.3.2 (Old Version) | <a href="../" style="color: #3498db;">最新版はこちら</a></p>
+                </footer>
+            </main>
+        </div>
+
+        <aside class="history-section" aria-label="作成履歴">
+            <h2>履歴から選択</h2>
+            <div id="historyList" class="history-list"></div>
+        </aside>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
