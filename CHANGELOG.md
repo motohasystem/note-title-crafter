@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-30
+
+### Added
+- 画像のドラッグ&ドロップ読み込み機能
+  - 画面全体がドロップ領域として機能
+  - ファイル・ブラウザからの画像URLどちらにも対応
+  - ドラッグ中は画面全体に視覚フィードバック表示
+- OGP画像（morimaru.jpg）を設定
+  - SNSで共有した際にプレビュー画像が表示される
+- Google Analytics（G-9DLR039J0S）を導入
+
 ## [2.0.0] - 2026-04-15
 
 ### Added
