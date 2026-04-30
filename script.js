@@ -405,6 +405,60 @@ document.addEventListener("paste", (e) => {
     }
 });
 
+// ドラッグ&ドロップで画像を読み込む（画面全体が対象）
+let dragCounter = 0;
+
+function isDraggingFiles(e) {
+    return e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.includes("Files");
+}
+
+window.addEventListener("dragenter", (e) => {
+    if (!isDraggingFiles(e)) return;
+    e.preventDefault();
+    dragCounter++;
+    document.body.classList.add("drag-over");
+});
+
+window.addEventListener("dragover", (e) => {
+    if (!isDraggingFiles(e)) return;
+    e.preventDefault();
+});
+
+window.addEventListener("dragleave", (e) => {
+    if (!isDraggingFiles(e)) return;
+    dragCounter--;
+    if (dragCounter <= 0) {
+        dragCounter = 0;
+        document.body.classList.remove("drag-over");
+    }
+});
+
+window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    document.body.classList.remove("drag-over");
+
+    const dt = e.dataTransfer;
+    if (!dt) return;
+
+    // ファイルがドロップされた場合
+    if (dt.files && dt.files.length > 0) {
+        const file = dt.files[0];
+        if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.onload = (ev) => loadImage(ev.target.result);
+            reader.readAsDataURL(file);
+            return;
+        }
+    }
+
+    // ブラウザからの画像URLがドロップされた場合
+    const url = dt.getData("text/uri-list") || dt.getData("text/plain");
+    if (url && /^(https?:|data:image\/)/i.test(url)) {
+        loadImage(url);
+    }
+});
+
 // 縦横比のプリセット定義
 const aspectRatioPresets = {
     'note': { width: 1280, height: 670 },
