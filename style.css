@@ -435,6 +435,84 @@ body.drag-over::after {
     background-color: #2980b9;
 }
 
+.stroke-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.stroke-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.stroke-item .stroke-width-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.stroke-item .stroke-width-value {
+    font-size: 12px;
+    color: #666;
+    min-width: 32px;
+    text-align: right;
+}
+
+.stroke-item .stroke-color-input {
+    width: 32px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.stroke-delete-btn {
+    width: 22px;
+    height: 22px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stroke-delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.add-stroke-btn {
+    width: 100%;
+    padding: 5px;
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s;
+}
+
+.add-stroke-btn:hover {
+    background-color: #7f8c8d;
+}
+
+.add-stroke-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 .history-section {
     background-color: white;
     padding: 15px;

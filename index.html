@@ -128,10 +128,12 @@
                 </div>
                 
                 <div class="control-group">
-                    <label for="textStrokeWidth">文字枠線の太さ:</label>
-                    <input type="range" id="textStrokeWidth" min="0" max="50" value="0">
-                    <span id="textStrokeWidthValue">0</span>px
+                    <label>文字枠線:</label>
+                    <div id="strokeList" class="stroke-list"></div>
+                    <button type="button" id="addStrokeBtn" class="add-stroke-btn">+ 枠線を追加</button>
+                    <small>太い枠線が外側、細い枠線が内側に重なります（最大5本）</small>
                 </div>
+
 
                 <div class="control-group">
                     <label for="borderWidth">枠の太さ:</label>

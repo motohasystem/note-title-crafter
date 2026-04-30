@@ -16,8 +16,6 @@ const textPadding = document.getElementById("textPadding");
 const textPaddingValue = document.getElementById("textPaddingValue");
 const textBackgroundOpacity = document.getElementById("textBackgroundOpacity");
 const textBackgroundOpacityValue = document.getElementById("textBackgroundOpacityValue");
-const textStrokeWidth = document.getElementById("textStrokeWidth");
-const textStrokeWidthValue = document.getElementById("textStrokeWidthValue");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const downloadBtn = document.getElementById("downloadBtn");
@@ -34,6 +32,9 @@ const customWidth = document.getElementById("customWidth");
 const customHeight = document.getElementById("customHeight");
 const layerListEl = document.getElementById("layerList");
 const addLayerBtn = document.getElementById("addLayerBtn");
+const strokeListEl = document.getElementById("strokeList");
+const addStrokeBtn = document.getElementById("addStrokeBtn");
+const MAX_STROKES = 5;
 
 let uploadedImage = null;
 let fitMode = "contain"; // 'contain' または 'cover'
@@ -62,7 +63,7 @@ let textLayers = [
         borderColor: '#000000',
         textPosition: 50,
         textShadow: true,
-        textStrokeWidth: 0,
+        strokes: [], // [{width: number, color: string}]
         bounds: null
     }
 ];
@@ -79,7 +80,7 @@ function createDefaultLayer() {
         borderColor: '#000000',
         textPosition: 50,
         textShadow: true,
-        textStrokeWidth: 0,
+        strokes: [],
         bounds: null
     };
 }
@@ -98,8 +99,7 @@ function syncControlsToLayer(index) {
     textPosition.value = layer.textPosition;
     textPositionValue.textContent = layer.textPosition;
     textShadow.checked = layer.textShadow;
-    textStrokeWidth.value = layer.textStrokeWidth;
-    textStrokeWidthValue.textContent = layer.textStrokeWidth;
+    renderStrokeList();
 }
 
 // UIコントロールの値をアクティブレイヤーのデータに反映
@@ -112,8 +112,85 @@ function syncLayerFromControls(index) {
     layer.borderColor = borderColor.value;
     layer.textPosition = parseInt(textPosition.value);
     layer.textShadow = textShadow.checked;
-    layer.textStrokeWidth = parseInt(textStrokeWidth.value);
+    // strokes は UI から直接ミューテートされる
 }
+
+// 文字枠線リストのUI描画
+function renderStrokeList() {
+    const layer = textLayers[activeLayerIndex];
+    if (!layer) return;
+    strokeListEl.innerHTML = '';
+
+    layer.strokes.forEach((stroke, idx) => {
+        const item = document.createElement('div');
+        item.className = 'stroke-item';
+
+        const widthInput = document.createElement('input');
+        widthInput.type = 'range';
+        widthInput.className = 'stroke-width-input';
+        widthInput.min = '0';
+        widthInput.max = '50';
+        widthInput.value = stroke.width;
+
+        const widthValue = document.createElement('span');
+        widthValue.className = 'stroke-width-value';
+        widthValue.textContent = `${stroke.width}px`;
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.className = 'stroke-color-input';
+        colorInput.value = stroke.color;
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'stroke-delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.title = '削除';
+
+        widthInput.addEventListener('input', (e) => {
+            stroke.width = parseInt(e.target.value);
+            widthValue.textContent = `${stroke.width}px`;
+            drawCanvas();
+            saveSettingsToURL();
+        });
+
+        colorInput.addEventListener('input', (e) => {
+            stroke.color = e.target.value;
+            drawCanvas();
+            saveSettingsToURL();
+        });
+
+        deleteBtn.addEventListener('click', () => {
+            layer.strokes.splice(idx, 1);
+            renderStrokeList();
+            drawCanvas();
+            saveSettingsToURL();
+        });
+
+        item.appendChild(widthInput);
+        item.appendChild(widthValue);
+        item.appendChild(colorInput);
+        item.appendChild(deleteBtn);
+        strokeListEl.appendChild(item);
+    });
+
+    addStrokeBtn.disabled = layer.strokes.length >= MAX_STROKES;
+}
+
+// 枠線を追加
+function addStroke() {
+    const layer = textLayers[activeLayerIndex];
+    if (!layer || layer.strokes.length >= MAX_STROKES) return;
+    // 直前の最大幅 + 5、なければ 5 を初期値に
+    const maxWidth = layer.strokes.reduce((m, s) => Math.max(m, s.width), 0);
+    const newWidth = Math.min(50, maxWidth > 0 ? maxWidth + 5 : 5);
+    layer.strokes.push({ width: newWidth, color: layer.borderColor });
+    renderStrokeList();
+    drawCanvas();
+    saveSettingsToURL();
+}
+
+addStrokeBtn.addEventListener('click', addStroke);
 
 // レイヤーリストのUI描画
 function renderLayerList() {
@@ -165,7 +242,7 @@ function addLayer() {
         newLayer.fontColor = lastLayer.fontColor;
         newLayer.borderColor = lastLayer.borderColor;
         newLayer.textShadow = lastLayer.textShadow;
-        newLayer.textStrokeWidth = lastLayer.textStrokeWidth;
+        newLayer.strokes = lastLayer.strokes.map(s => ({ width: s.width, color: s.color }));
     }
     textLayers.push(newLayer);
     selectLayer(textLayers.length - 1);
@@ -217,15 +294,6 @@ textPadding.addEventListener("input", (e) => {
 // スモーク（背景を暗く）スライダーの値を表示
 textBackgroundOpacity.addEventListener("input", (e) => {
     textBackgroundOpacityValue.textContent = e.target.value;
-    drawCanvas();
-    saveSettingsToURL();
-});
-
-// 文字枠線の太さスライダーの値を表示
-textStrokeWidth.addEventListener("input", (e) => {
-    textStrokeWidthValue.textContent = e.target.value;
-    syncLayerFromControls(activeLayerIndex);
-    renderLayerList();
     drawCanvas();
     saveSettingsToURL();
 });
@@ -536,8 +604,7 @@ const layerDefaults = {
     fontColor: '#ffffff',
     borderColor: '#000000',
     textPosition: 50,
-    textShadow: true,
-    textStrokeWidth: 0
+    textShadow: true
 };
 
 // 色を短縮する関数（例: #ffffff → fff）
@@ -606,7 +673,12 @@ function saveSettingsToURL() {
         if (layer.borderColor !== layerDefaults.borderColor) obj.bc = compressColor(layer.borderColor);
         if (layer.textPosition !== layerDefaults.textPosition) obj.tp = layer.textPosition;
         if (layer.textShadow !== layerDefaults.textShadow) obj.ts = layer.textShadow ? 1 : 0;
-        if (layer.textStrokeWidth !== layerDefaults.textStrokeWidth) obj.sw = layer.textStrokeWidth;
+        if (layer.strokes && layer.strokes.length > 0) {
+            obj.s = layer.strokes.map(stroke => ({
+                w: stroke.width,
+                c: compressColor(stroke.color)
+            }));
+        }
         return obj;
     });
 
@@ -702,17 +774,31 @@ function loadSettingsFromURL() {
         // 新形式: JSON配列
         try {
             const layersData = JSON.parse(layersParam);
-            textLayers = layersData.map((data, i) => ({
-                id: i,
-                text: data.t || '',
-                fontSize: data.fs !== undefined ? data.fs : layerDefaults.fontSize,
-                fontColor: data.fc ? expandColor(data.fc) : layerDefaults.fontColor,
-                borderColor: data.bc ? expandColor(data.bc) : layerDefaults.borderColor,
-                textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
-                textShadow: data.ts !== undefined ? !!data.ts : layerDefaults.textShadow,
-                textStrokeWidth: data.sw !== undefined ? data.sw : layerDefaults.textStrokeWidth,
-                bounds: null
-            }));
+            textLayers = layersData.map((data, i) => {
+                const borderColor = data.bc ? expandColor(data.bc) : layerDefaults.borderColor;
+                let strokes = [];
+                if (Array.isArray(data.s)) {
+                    // 新形式: strokes配列
+                    strokes = data.s.map(st => ({
+                        width: st.w !== undefined ? st.w : 0,
+                        color: st.c ? expandColor(st.c) : borderColor
+                    }));
+                } else if (data.sw !== undefined && data.sw > 0) {
+                    // 旧形式: 単一の枠線
+                    strokes = [{ width: data.sw, color: borderColor }];
+                }
+                return {
+                    id: i,
+                    text: data.t || '',
+                    fontSize: data.fs !== undefined ? data.fs : layerDefaults.fontSize,
+                    fontColor: data.fc ? expandColor(data.fc) : layerDefaults.fontColor,
+                    borderColor: borderColor,
+                    textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
+                    textShadow: data.ts !== undefined ? !!data.ts : layerDefaults.textShadow,
+                    strokes: strokes,
+                    bounds: null
+                };
+            });
             nextLayerId = textLayers.length;
             activeLayerIndex = 0;
         } catch (e) {
@@ -750,7 +836,12 @@ function loadSettingsFromURL() {
         }
 
         const textStrokeWidthParam = getParam('textStrokeWidth');
-        if (textStrokeWidthParam !== null) layer.textStrokeWidth = parseInt(textStrokeWidthParam);
+        if (textStrokeWidthParam !== null) {
+            const w = parseInt(textStrokeWidthParam);
+            if (w > 0) {
+                layer.strokes = [{ width: w, color: layer.borderColor }];
+            }
+        }
     }
 
     // UIに反映
@@ -930,17 +1021,29 @@ function drawTextLayer(layer) {
         height: totalHeight + hitPadding * 2
     };
 
-    // テキストを描画
+    // 枠線を太い順（外側→内側）に描画してから本体を描画
+    const sortedStrokes = (layer.strokes || [])
+        .filter(s => s.width > 0)
+        .slice()
+        .sort((a, b) => b.width - a.width);
+
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+
+    wrappedLines.forEach((line, index) => {
+        if (line.trim() === "") return;
+        const ly = startY + index * lineHeight;
+        sortedStrokes.forEach(stroke => {
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = stroke.width;
+            ctx.strokeText(line, textX, ly);
+        });
+    });
+
+    // テキスト本体を描画
     ctx.fillStyle = layer.fontColor;
     wrappedLines.forEach((line, index) => {
         if (line.trim() !== "") {
-            // 枠線を描画（fillTextより先に描画）
-            if (layer.textStrokeWidth > 0) {
-                ctx.strokeStyle = layer.borderColor;
-                ctx.lineWidth = layer.textStrokeWidth;
-                ctx.strokeText(line, textX, startY + index * lineHeight);
-            }
-            // 文字を描画
             ctx.fillText(line, textX, startY + index * lineHeight);
         }
     });
@@ -1017,7 +1120,7 @@ function saveToHistory() {
             borderColor: l.borderColor,
             textPosition: l.textPosition,
             textShadow: l.textShadow,
-            textStrokeWidth: l.textStrokeWidth
+            strokes: l.strokes.map(s => ({ width: s.width, color: s.color }))
         })),
         borderWidth: borderWidth.value,
         textBackgroundOpacity: textBackgroundOpacity.value,
@@ -1077,8 +1180,14 @@ function displayHistory() {
             displayColor = first.fontColor;
             displaySize = first.fontSize;
             hasShadow = first.textShadow;
-            hasStroke = first.textStrokeWidth > 0;
-            strokeColor = first.borderColor;
+            // strokes 配列があればそれを、なければ旧 textStrokeWidth を見る
+            if (Array.isArray(first.strokes) && first.strokes.length > 0) {
+                hasStroke = first.strokes[0].width > 0;
+                strokeColor = first.strokes[0].color;
+            } else {
+                hasStroke = first.textStrokeWidth > 0;
+                strokeColor = first.borderColor;
+            }
         } else {
             displayText = item.titleText || '(テキストなし)';
             displayColor = item.fontColor;
@@ -1138,17 +1247,30 @@ function displayHistory() {
 function loadHistoryItem(item) {
     if (item.textLayers && item.textLayers.length > 0) {
         // 新形式
-        textLayers = item.textLayers.map((l, i) => ({
-            id: i,
-            text: l.text || '',
-            fontSize: l.fontSize || 60,
-            fontColor: l.fontColor || '#ffffff',
-            borderColor: l.borderColor || '#000000',
-            textPosition: l.textPosition !== undefined ? l.textPosition : 50,
-            textShadow: l.textShadow !== undefined ? l.textShadow : true,
-            textStrokeWidth: l.textStrokeWidth || 0,
-            bounds: null
-        }));
+        textLayers = item.textLayers.map((l, i) => {
+            const borderColor = l.borderColor || '#000000';
+            let strokes = [];
+            if (Array.isArray(l.strokes)) {
+                strokes = l.strokes.map(s => ({
+                    width: s.width || 0,
+                    color: s.color || borderColor
+                }));
+            } else if (l.textStrokeWidth && l.textStrokeWidth > 0) {
+                // 旧形式の単一枠線フィールド
+                strokes = [{ width: parseInt(l.textStrokeWidth), color: borderColor }];
+            }
+            return {
+                id: i,
+                text: l.text || '',
+                fontSize: l.fontSize || 60,
+                fontColor: l.fontColor || '#ffffff',
+                borderColor: borderColor,
+                textPosition: l.textPosition !== undefined ? l.textPosition : 50,
+                textShadow: l.textShadow !== undefined ? l.textShadow : true,
+                strokes: strokes,
+                bounds: null
+            };
+        });
         nextLayerId = textLayers.length;
         activeLayerIndex = 0;
     } else {
@@ -1157,15 +1279,17 @@ function loadHistoryItem(item) {
                      item.textPosition === 'center' ? 50 :
                      item.textPosition === 'bottom' ? 80 :
                      parseInt(item.textPosition) || 50;
+        const borderColor = item.borderColor || '#000000';
+        const sw = parseInt(item.textStrokeWidth) || 0;
         textLayers = [{
             id: 0,
             text: '', // テキスト自体は反映させない（旧動作と同じ）
             fontSize: parseInt(item.fontSize) || 60,
             fontColor: item.fontColor || '#ffffff',
-            borderColor: item.borderColor || '#000000',
+            borderColor: borderColor,
             textPosition: pos,
             textShadow: item.textShadow !== undefined ? item.textShadow : true,
-            textStrokeWidth: parseInt(item.textStrokeWidth) || 0,
+            strokes: sw > 0 ? [{ width: sw, color: borderColor }] : [],
             bounds: null
         }];
         nextLayerId = 1;
