@@ -34,7 +34,129 @@ const layerListEl = document.getElementById("layerList");
 const addLayerBtn = document.getElementById("addLayerBtn");
 const strokeListEl = document.getElementById("strokeList");
 const addStrokeBtn = document.getElementById("addStrokeBtn");
+const fontDropdown = document.getElementById("fontDropdown");
+const fontDropdownTrigger = document.getElementById("fontDropdownTrigger");
+const fontDropdownPanel = document.getElementById("fontDropdownPanel");
+const fontDropdownCurrent = fontDropdownTrigger.querySelector(".font-dropdown-current");
+const fontDropdownSearch = document.getElementById("fontDropdownSearch");
+const loadLocalFontsBtn = document.getElementById("loadLocalFontsBtn");
+const fontDropdownEmpty = document.getElementById("fontDropdownEmpty");
 const MAX_STROKES = 5;
+
+// フォント定義（Single source of truth）
+const FONT_OPTIONS = [
+    // Google Fonts (curated)
+    { key: 'noto-sans-jp',     label: 'Noto Sans JP',       family: "'Noto Sans JP', sans-serif",       category: 'google', googleParam: 'Noto+Sans+JP:wght@400;700' },
+    { key: 'noto-serif-jp',    label: 'Noto Serif JP',      family: "'Noto Serif JP', serif",           category: 'google', googleParam: 'Noto+Serif+JP:wght@400;700' },
+    { key: 'zen-maru-gothic',  label: 'Zen Maru Gothic',    family: "'Zen Maru Gothic', sans-serif",    category: 'google', googleParam: 'Zen+Maru+Gothic:wght@500;700' },
+    { key: 'zen-old-mincho',   label: 'Zen Old Mincho',     family: "'Zen Old Mincho', serif",          category: 'google', googleParam: 'Zen+Old+Mincho:wght@500;700' },
+    { key: 'dotgothic16',      label: 'DotGothic16 (ドット)', family: "'DotGothic16', sans-serif",       category: 'google', googleParam: 'DotGothic16' },
+    { key: 'yusei-magic',      label: 'Yusei Magic (手書き)', family: "'Yusei Magic', sans-serif",       category: 'google', googleParam: 'Yusei+Magic' },
+    { key: 'reggae-one',       label: 'Reggae One (太字)',   family: "'Reggae One', cursive",            category: 'google', googleParam: 'Reggae+One' },
+    { key: 'mplus-rounded',    label: 'M PLUS Rounded 1c',  family: "'M PLUS Rounded 1c', sans-serif",  category: 'google', googleParam: 'M+PLUS+Rounded+1c:wght@500;700' },
+    // System fonts
+    { key: 'yu-gothic',        label: '游ゴシック / Hiragino Sans', family: "'Yu Gothic', 'YuGothic', 'Hiragino Sans', sans-serif",         category: 'system' },
+    { key: 'yu-mincho',        label: '游明朝 / Hiragino Mincho',   family: "'Yu Mincho', 'YuMincho', 'Hiragino Mincho ProN', serif",       category: 'system' },
+    { key: 'meiryo',           label: 'Meiryo / メイリオ',          family: "'Meiryo', sans-serif",                                          category: 'system' },
+    { key: 'system-ui',        label: 'システム標準',                family: "system-ui, -apple-system, sans-serif",                          category: 'system' },
+    { key: 'monospace',        label: '等幅 (monospace)',           family: "ui-monospace, 'Courier New', monospace",                        category: 'system' },
+];
+
+const FONT_OPTIONS_BY_KEY = new Map(FONT_OPTIONS.map(o => [o.key, o]));
+const DEFAULT_FONT_KEY = 'noto-sans-jp';
+
+function getFontOption(key) {
+    const opt = FONT_OPTIONS_BY_KEY.get(key);
+    if (opt) return opt;
+    // 'local:<FamilyName>' 形式はその場で合成（権限なくてもCSS指定はできる）
+    if (key && key.startsWith('local:')) {
+        const family = key.slice('local:'.length);
+        const escaped = family.replace(/'/g, "\\'");
+        return {
+            key: key,
+            label: family,
+            family: `'${escaped}', sans-serif`,
+            category: 'local',
+            googleParam: null
+        };
+    }
+    return FONT_OPTIONS_BY_KEY.get(DEFAULT_FONT_KEY);
+}
+
+// ローカルフォントの追加状態
+let localFontsLoaded = false;
+const localFontKeys = new Set();
+const localFontDataByFamily = new Map(); // family → FontData（ファイル取得用）
+const registeredLocalFonts = new Set();   // family → 登録済み
+
+// Google Fonts動的ロード
+const loadedGoogleFonts = new Set();
+const fontLoadPromises = new Map();
+
+function injectGoogleFontLink(option) {
+    if (loadedGoogleFonts.has(option.key)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${option.googleParam}&display=swap`;
+    link.dataset.fontKey = option.key;
+    document.head.appendChild(link);
+    loadedGoogleFonts.add(option.key);
+}
+
+// ローカルフォントを FontFace としてdocument.fonts に登録する
+// （Canvas で使うために必須）
+async function registerLocalFont(family) {
+    if (registeredLocalFonts.has(family)) return;
+    const fontData = localFontDataByFamily.get(family);
+    if (!fontData) return;
+    try {
+        const blob = await fontData.blob();
+        const buffer = await blob.arrayBuffer();
+        const fontFace = new FontFace(family, buffer);
+        await fontFace.load();
+        document.fonts.add(fontFace);
+        registeredLocalFonts.add(family);
+    } catch (e) {
+        console.warn(`ローカルフォントの登録に失敗: ${family}`, e);
+    }
+}
+
+function ensureFontLoaded(key) {
+    if (!document.fonts) return Promise.resolve();
+    const option = getFontOption(key);
+    const firstName = option.family.match(/'([^']+)'/)?.[1] || option.label;
+    const probeSpec = `bold 60px '${firstName}'`;
+
+    // ローカルフォント: FontFace としてdocument.fonts に登録してから Canvas に使う
+    if (option.category === 'local') {
+        if (fontLoadPromises.has(option.key)) return fontLoadPromises.get(option.key);
+        const family = option.key.slice('local:'.length);
+        const localPromise = registerLocalFont(family)
+            .then(() => document.fonts.load(probeSpec))
+            .catch(() => 'error');
+        fontLoadPromises.set(option.key, localPromise);
+        return localPromise;
+    }
+
+    // 定番システムフォント: 通常はキャッシュ済みだが念のためロードを試す
+    if (option.category === 'system') {
+        return document.fonts.load(probeSpec).catch(() => 'ok');
+    }
+
+    // Google Fonts: <link> 注入 + フォント取得待ち
+    if (option.category !== 'google') return Promise.resolve();
+    if (fontLoadPromises.has(option.key)) return fontLoadPromises.get(option.key);
+
+    injectGoogleFontLink(option);
+
+    const loadPromise = Promise.race([
+        document.fonts.load(probeSpec),
+        new Promise(resolve => setTimeout(() => resolve('timeout'), 5000))
+    ]).catch(() => 'error');
+
+    fontLoadPromises.set(option.key, loadPromise);
+    return loadPromise;
+}
 
 let uploadedImage = null;
 let fitMode = "contain"; // 'contain' または 'cover'
@@ -64,6 +186,7 @@ let textLayers = [
         textPosition: 50,
         textShadow: true,
         strokes: [], // [{width: number, color: string}]
+        fontFamily: DEFAULT_FONT_KEY,
         bounds: null
     }
 ];
@@ -81,9 +204,281 @@ function createDefaultLayer() {
         textPosition: 50,
         textShadow: true,
         strokes: [],
+        fontFamily: DEFAULT_FONT_KEY,
         bounds: null
     };
 }
+
+// カスタムフォントドロップダウンの状態
+let fontDropdownOpenSnapshot = null; // ドロップダウンを開いた時のフォントキー（リバート用）
+
+// フォント選択肢をカスタムドロップダウンに展開
+function populateFontSelect() {
+    const groups = {
+        google: fontDropdownPanel.querySelector('.font-dropdown-group[data-font-category="google"]'),
+        system: fontDropdownPanel.querySelector('.font-dropdown-group[data-font-category="system"]')
+    };
+    FONT_OPTIONS.forEach(opt => {
+        if (groups[opt.category]) {
+            addFontDropdownItem(opt, groups[opt.category]);
+        }
+    });
+
+    // パネルからマウスが出たら元のフォントに戻す（ドロップダウンは閉じない）
+    fontDropdownPanel.addEventListener('mouseleave', () => {
+        if (fontDropdownOpenSnapshot !== null) {
+            revertPreview();
+        }
+    });
+}
+
+// 検索フィルタ
+function filterFontItems(query) {
+    const q = query.trim().toLowerCase();
+    let totalVisible = 0;
+    fontDropdownPanel.querySelectorAll('.font-dropdown-group').forEach(group => {
+        if (group.hidden) return;
+        let visibleCount = 0;
+        group.querySelectorAll('.font-dropdown-item').forEach(item => {
+            const label = item.dataset.fontLabel || item.textContent;
+            const match = !q || label.toLowerCase().includes(q);
+            item.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+        });
+        // グループラベル含めてグループ全体の表示を切り替え
+        const labelEl = group.querySelector('.font-dropdown-group-label');
+        if (labelEl) labelEl.style.display = visibleCount > 0 ? '' : 'none';
+        totalVisible += visibleCount;
+    });
+    fontDropdownEmpty.hidden = totalVisible > 0;
+}
+
+fontDropdownSearch.addEventListener('input', (e) => {
+    filterFontItems(e.target.value);
+});
+
+// 1つのフォントエントリをドロップダウンに追加
+function addFontDropdownItem(option, groupEl) {
+    const item = document.createElement('div');
+    item.className = 'font-dropdown-item';
+    item.dataset.fontKey = option.key;
+    item.dataset.fontLabel = option.label;
+    item.setAttribute('role', 'option');
+    item.style.fontFamily = option.family;
+
+    const label = document.createElement('span');
+    label.textContent = option.label;
+    item.appendChild(label);
+
+    item.addEventListener('mouseenter', () => previewFont(option.key));
+    item.addEventListener('click', () => commitFont(option.key));
+
+    groupEl.appendChild(item);
+}
+
+// ローカルフォントを取得してドロップダウンに追加
+async function loadLocalFonts() {
+    if (!window.queryLocalFonts) {
+        alert('このブラウザはローカルフォントの取得に対応していません（Chrome/Edge推奨）。');
+        return;
+    }
+    loadLocalFontsBtn.disabled = true;
+    loadLocalFontsBtn.textContent = '読み込み中...';
+    try {
+        const fonts = await window.queryLocalFonts();
+        const families = new Set();
+        fonts.forEach(f => {
+            families.add(f.family);
+            // FontDataを保持（後で blob を取得して FontFace 登録するため）
+            // boldバリアントを優先、なければ最初に見つかったもの
+            const existing = localFontDataByFamily.get(f.family);
+            const isBold = f.style && /bold/i.test(f.style);
+            const existingIsBold = existing && existing.style && /bold/i.test(existing.style);
+            if (!existing || (isBold && !existingIsBold)) {
+                localFontDataByFamily.set(f.family, f);
+            }
+        });
+        const sorted = [...families].sort((a, b) => a.localeCompare(b, 'ja'));
+
+        const localGroup = fontDropdownPanel.querySelector('.font-dropdown-group[data-font-category="local"]');
+        const labelEl = localGroup.querySelector('.font-dropdown-group-label');
+        labelEl.textContent = `ローカルフォント (${sorted.length})`;
+        localGroup.hidden = false;
+
+        sorted.forEach(family => {
+            const key = 'local:' + family;
+            if (localFontKeys.has(key) || FONT_OPTIONS_BY_KEY.has(key)) return;
+            const escaped = family.replace(/'/g, "\\'");
+            const option = {
+                key: key,
+                label: family,
+                family: `'${escaped}', sans-serif`,
+                category: 'local',
+                googleParam: null
+            };
+            FONT_OPTIONS.push(option);
+            FONT_OPTIONS_BY_KEY.set(key, option);
+            localFontKeys.add(key);
+            addFontDropdownItem(option, localGroup);
+        });
+
+        localFontsLoaded = true;
+        loadLocalFontsBtn.hidden = true;
+        // 現在のアクティブレイヤーがローカルフォントを使っているならハイライト更新
+        updateDropdownItemHighlight();
+    } catch (e) {
+        loadLocalFontsBtn.disabled = false;
+        loadLocalFontsBtn.textContent = '+ すべてのローカルフォントを読み込む';
+        if (e && e.name === 'NotAllowedError') {
+            // 権限拒否
+            console.warn('ローカルフォントへのアクセスが拒否されました');
+        } else {
+            console.error('ローカルフォントの読み込みに失敗:', e);
+        }
+    }
+}
+
+loadLocalFontsBtn.addEventListener('click', loadLocalFonts);
+
+// 初期化時にAPI対応・権限状態を確認してボタン表示を制御
+async function initLocalFontsButton() {
+    if (!window.queryLocalFonts) {
+        loadLocalFontsBtn.hidden = true;
+        return;
+    }
+    // 既に権限が付与されている場合は自動ロード
+    if (navigator.permissions) {
+        try {
+            const result = await navigator.permissions.query({ name: 'local-fonts' });
+            if (result.state === 'granted') {
+                await loadLocalFonts();
+                return;
+            }
+            if (result.state === 'denied') {
+                loadLocalFontsBtn.hidden = true;
+                return;
+            }
+        } catch (e) {
+            // permission query非対応の場合はボタン表示のまま
+        }
+    }
+}
+
+function setDropdownCurrentLabel(key) {
+    const opt = getFontOption(key);
+    fontDropdownCurrent.textContent = opt.label;
+    fontDropdownCurrent.style.fontFamily = opt.family;
+}
+
+function updateDropdownItemHighlight() {
+    const layer = textLayers[activeLayerIndex];
+    const currentKey = layer ? layer.fontFamily : DEFAULT_FONT_KEY;
+    fontDropdownPanel.querySelectorAll('.font-dropdown-item').forEach(item => {
+        const isCurrent = item.dataset.fontKey === currentKey;
+        item.classList.toggle('selected', isCurrent);
+        // 既存のチェックマーク削除
+        const oldCheck = item.querySelector('.font-check');
+        if (oldCheck) oldCheck.remove();
+        if (isCurrent) {
+            const check = document.createElement('span');
+            check.className = 'font-check';
+            check.textContent = '✓';
+            item.appendChild(check);
+        }
+    });
+}
+
+function openFontDropdown() {
+    const layer = textLayers[activeLayerIndex];
+    if (!layer) return;
+    fontDropdownOpenSnapshot = layer.fontFamily;
+    fontDropdownPanel.hidden = false;
+    fontDropdown.dataset.open = 'true';
+    fontDropdownTrigger.setAttribute('aria-expanded', 'true');
+    updateDropdownItemHighlight();
+    // 検索欄をクリアしてフォーカス
+    fontDropdownSearch.value = '';
+    filterFontItems('');
+    setTimeout(() => fontDropdownSearch.focus(), 0);
+}
+
+function closeFontDropdown(commit) {
+    if (!commit && fontDropdownOpenSnapshot !== null) {
+        // 確定せずに閉じる→元のフォントに戻す
+        const layer = textLayers[activeLayerIndex];
+        if (layer) {
+            layer.fontFamily = fontDropdownOpenSnapshot;
+            setDropdownCurrentLabel(layer.fontFamily);
+            drawCanvas();
+        }
+    }
+    fontDropdownOpenSnapshot = null;
+    fontDropdownPanel.hidden = true;
+    fontDropdown.dataset.open = 'false';
+    fontDropdownTrigger.setAttribute('aria-expanded', 'false');
+}
+
+function revertPreview() {
+    if (fontDropdownOpenSnapshot === null) return;
+    const layer = textLayers[activeLayerIndex];
+    if (!layer) return;
+    layer.fontFamily = fontDropdownOpenSnapshot;
+    setDropdownCurrentLabel(layer.fontFamily);
+    updateDropdownItemHighlight();
+    drawCanvas();
+}
+
+function previewFont(key) {
+    const layer = textLayers[activeLayerIndex];
+    if (!layer) return;
+    layer.fontFamily = key;
+    setDropdownCurrentLabel(key);
+    updateDropdownItemHighlight();
+    drawCanvas();
+    ensureFontLoaded(key).then(() => {
+        // プレビュー中のキーがまだ同じなら再描画（連続ホバーで上書きされた後の遅延更新を防ぐ）
+        if (textLayers[activeLayerIndex] && textLayers[activeLayerIndex].fontFamily === key) {
+            drawCanvas();
+        }
+    });
+}
+
+function commitFont(key) {
+    const layer = textLayers[activeLayerIndex];
+    if (!layer) return;
+    layer.fontFamily = key;
+    fontDropdownOpenSnapshot = key; // 以後、閉じてもリバートしない
+    setDropdownCurrentLabel(key);
+    drawCanvas();
+    saveSettingsToURL();
+    renderLayerList();
+    ensureFontLoaded(key).then(() => drawCanvas());
+    closeFontDropdown(true);
+}
+
+// トリガークリックで開閉
+fontDropdownTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (fontDropdownPanel.hidden) {
+        openFontDropdown();
+    } else {
+        closeFontDropdown(false);
+    }
+});
+
+// パネル外クリックで閉じる
+document.addEventListener('click', (e) => {
+    if (!fontDropdownPanel.hidden && !fontDropdown.contains(e.target)) {
+        closeFontDropdown(false);
+    }
+});
+
+// Escキーで閉じる
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !fontDropdownPanel.hidden) {
+        closeFontDropdown(false);
+    }
+});
 
 // アクティブレイヤーのデータからUIコントロールに反映
 function syncControlsToLayer(index) {
@@ -99,6 +494,8 @@ function syncControlsToLayer(index) {
     textPosition.value = layer.textPosition;
     textPositionValue.textContent = layer.textPosition;
     textShadow.checked = layer.textShadow;
+    setDropdownCurrentLabel(layer.fontFamily || DEFAULT_FONT_KEY);
+    if (!fontDropdownPanel.hidden) updateDropdownItemHighlight();
     renderStrokeList();
 }
 
@@ -112,6 +509,7 @@ function syncLayerFromControls(index) {
     layer.borderColor = borderColor.value;
     layer.textPosition = parseInt(textPosition.value);
     layer.textShadow = textShadow.checked;
+    // fontFamily はドロップダウン操作で直接ミューテートされる
     // strokes は UI から直接ミューテートされる
 }
 
@@ -225,6 +623,10 @@ function renderLayerList() {
 
 // レイヤーを選択
 function selectLayer(index) {
+    // フォントドロップダウンが開いていれば閉じる（プレビュー状態をリバート）
+    if (fontDropdownPanel && !fontDropdownPanel.hidden) {
+        closeFontDropdown(false);
+    }
     // 現在の値を保存してから切り替え
     syncLayerFromControls(activeLayerIndex);
     activeLayerIndex = index;
@@ -243,6 +645,7 @@ function addLayer() {
         newLayer.borderColor = lastLayer.borderColor;
         newLayer.textShadow = lastLayer.textShadow;
         newLayer.strokes = lastLayer.strokes.map(s => ({ width: s.width, color: s.color }));
+        newLayer.fontFamily = lastLayer.fontFamily;
     }
     textLayers.push(newLayer);
     selectLayer(textLayers.length - 1);
@@ -604,7 +1007,8 @@ const layerDefaults = {
     fontColor: '#ffffff',
     borderColor: '#000000',
     textPosition: 50,
-    textShadow: true
+    textShadow: true,
+    fontFamily: DEFAULT_FONT_KEY
 };
 
 // 色を短縮する関数（例: #ffffff → fff）
@@ -678,6 +1082,9 @@ function saveSettingsToURL() {
                 w: stroke.width,
                 c: compressColor(stroke.color)
             }));
+        }
+        if (layer.fontFamily && layer.fontFamily !== layerDefaults.fontFamily) {
+            obj.ff = layer.fontFamily;
         }
         return obj;
     });
@@ -796,6 +1203,7 @@ function loadSettingsFromURL() {
                     textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
                     textShadow: data.ts !== undefined ? !!data.ts : layerDefaults.textShadow,
                     strokes: strokes,
+                    fontFamily: (data.ff && (FONT_OPTIONS_BY_KEY.has(data.ff) || data.ff.startsWith('local:'))) ? data.ff : layerDefaults.fontFamily,
                     bounds: null
                 };
             });
@@ -850,11 +1258,20 @@ function loadSettingsFromURL() {
 }
 
 // ページ読み込み時に初期化
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
+    populateFontSelect(); // フォント選択肢を展開（URL読込前に必要）
     loadSettingsFromURL(); // 先にURLから設定を読み込む
     initCanvas(); // その後キャンバスを初期化
     drawCanvas();
     displayHistory();
+
+    // ローカルフォントAPIの権限状態をチェックして自動ロード（granted時のみ）
+    initLocalFontsButton();
+
+    // 使用中フォントを事前ロードして再描画
+    const neededKeys = [...new Set(textLayers.map(l => l.fontFamily).filter(Boolean))];
+    await Promise.all(neededKeys.map(ensureFontLoaded));
+    drawCanvas();
 });
 
 // キャンバスに描画
@@ -967,7 +1384,8 @@ function drawTextLayer(layer) {
     if (!text) return null;
 
     const fontSizeVal = layer.fontSize;
-    ctx.font = `bold ${fontSizeVal}px 'Noto Sans JP', sans-serif`;
+    const fontOption = getFontOption(layer.fontFamily);
+    ctx.font = `bold ${fontSizeVal}px ${fontOption.family}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -1120,7 +1538,8 @@ function saveToHistory() {
             borderColor: l.borderColor,
             textPosition: l.textPosition,
             textShadow: l.textShadow,
-            strokes: l.strokes.map(s => ({ width: s.width, color: s.color }))
+            strokes: l.strokes.map(s => ({ width: s.width, color: s.color })),
+            fontFamily: l.fontFamily
         })),
         borderWidth: borderWidth.value,
         textBackgroundOpacity: textBackgroundOpacity.value,
@@ -1268,6 +1687,7 @@ function loadHistoryItem(item) {
                 textPosition: l.textPosition !== undefined ? l.textPosition : 50,
                 textShadow: l.textShadow !== undefined ? l.textShadow : true,
                 strokes: strokes,
+                fontFamily: (l.fontFamily && (FONT_OPTIONS_BY_KEY.has(l.fontFamily) || l.fontFamily.startsWith('local:'))) ? l.fontFamily : DEFAULT_FONT_KEY,
                 bounds: null
             };
         });
@@ -1290,6 +1710,7 @@ function loadHistoryItem(item) {
             textPosition: pos,
             textShadow: item.textShadow !== undefined ? item.textShadow : true,
             strokes: sw > 0 ? [{ width: sw, color: borderColor }] : [],
+            fontFamily: DEFAULT_FONT_KEY,
             bounds: null
         }];
         nextLayerId = 1;
@@ -1318,6 +1739,10 @@ function loadHistoryItem(item) {
     initCanvas();
     drawCanvas();
     saveSettingsToURL();
+
+    // 履歴で使われているGoogle Fontsを事前ロードして再描画
+    const neededKeys = [...new Set(textLayers.map(l => l.fontFamily).filter(Boolean))];
+    Promise.all(neededKeys.map(ensureFontLoaded)).then(() => drawCanvas());
 }
 
 // 履歴項目を削除する関数

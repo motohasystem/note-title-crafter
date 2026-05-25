@@ -101,7 +101,41 @@
                     <label for="titleText">タイトルテキスト:</label>
                     <textarea id="titleText" placeholder="タイトルを入力&#10;改行で複数行にできます" rows="3"></textarea>
                 </div>
-                
+
+                <div class="control-group">
+                    <label id="fontDropdownLabel">フォント:</label>
+                    <div class="font-dropdown" id="fontDropdown">
+                        <button type="button" class="font-dropdown-trigger" id="fontDropdownTrigger"
+                                aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fontDropdownLabel">
+                            <span class="font-dropdown-current">Noto Sans JP</span>
+                            <span class="font-dropdown-arrow" aria-hidden="true">▾</span>
+                        </button>
+                        <div class="font-dropdown-panel" id="fontDropdownPanel" role="listbox" hidden>
+                            <div class="font-dropdown-search">
+                                <input type="text" id="fontDropdownSearch" placeholder="フォントを検索...">
+                            </div>
+                            <div class="font-dropdown-scroll">
+                                <div class="font-dropdown-group" data-font-category="google">
+                                    <div class="font-dropdown-group-label">おすすめWebフォント (Google Fonts)</div>
+                                </div>
+                                <div class="font-dropdown-group" data-font-category="system">
+                                    <div class="font-dropdown-group-label">定番システムフォント</div>
+                                </div>
+                                <div class="font-dropdown-group" data-font-category="local" hidden>
+                                    <div class="font-dropdown-group-label">ローカルフォント</div>
+                                </div>
+                            </div>
+                            <button type="button" class="font-dropdown-load-local" id="loadLocalFontsBtn">
+                                + すべてのローカルフォントを読み込む
+                            </button>
+                            <div class="font-dropdown-empty" id="fontDropdownEmpty" hidden>
+                                該当するフォントがありません
+                            </div>
+                        </div>
+                    </div>
+                    <small>選択肢にマウスを合わせるとプレビューが切り替わります</small>
+                </div>
+
                 <div class="control-group">
                     <label for="fontSize">フォントサイズ:</label>
                     <input type="range" id="fontSize" min="20" max="300" value="60">
@@ -191,7 +225,7 @@
                 </section>
 
                 <footer style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
-                    <p>Version 2.1.0 | Last updated: 2026-04-30 | <a href="v1/" style="color: #3498db;">旧バージョン (v1)</a></p>
+                    <p>Version 2.2.0 | Last updated: 2026-05-25 | <a href="v1/" style="color: #3498db;">旧バージョン (v1)</a></p>
                 </footer>
             </main>
         </div>

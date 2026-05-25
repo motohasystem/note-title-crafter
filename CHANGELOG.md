@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-05-25
+
+### Added
+- 文字枠線の二重・三重表示機能
+  - 各レイヤーに最大5本まで枠線を追加可能
+  - 太い順（外側）から内側へ重ねて描画
+  - 各枠線ごとに太さと色を独立指定
+- レイヤーごとのフォント選択機能
+  - おすすめWebフォント8種（Google Fonts動的ロード）
+  - 定番システムフォント5種
+  - ローカルフォントの一覧表示（Chromium系のみ、`window.queryLocalFonts()` API使用）
+  - 各レイヤーが独立したフォント設定を保持
+- カスタムフォントドロップダウン
+  - 選択肢にマウスホバーで即時プレビュー
+  - 確定せずにマウスを外せば元のフォントに戻る
+  - フォント名検索ボックス
+  - 各項目を自身の書体で表示（書体プレビュー）
+- 右側プレビューのスティッキー表示
+  - スクロール時にプレビューが画面内に留まる
+
+### Changed
+- レイアウト調整
+  - ページ全体を上揃えに変更
+  - レイヤー切り替え時のプレビュー位置のズレを解消
+
+### Fixed
+- フォントドロップダウンが閉じない不具合を修正（hidden属性が display: flex に上書きされていた）
+- Canvas描画時にローカルフォントが反映されない不具合を修正（FontFace API で明示的にdocument.fonts に登録）
+
 ## [2.1.0] - 2026-04-30
 
 ### Added
