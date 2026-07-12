@@ -152,7 +152,14 @@
                 </div>
                 
                 <div class="control-group">
-                    <label for="borderColor">枠の色:</label>
+                    <label>文字枠:</label>
+                    <div id="strokeList" class="stroke-list"></div>
+                    <button type="button" id="addStrokeBtn" class="add-stroke-btn">+ 文字枠を追加</button>
+                    <small>太い文字枠が外側、細い文字枠が内側に重なります（最大5本）</small>
+                </div>
+
+                <div class="control-group">
+                    <label for="borderColor">外枠の色:</label>
                     <div class="color-input-group">
                         <input type="color" id="borderColor" value="#000000">
                         <input type="text" id="borderColorHex" value="#000000" placeholder="#000000" maxlength="7">
@@ -160,19 +167,12 @@
                     </div>
                     <small>文字色を選ぶと自動で補色になります</small>
                 </div>
-                
-                <div class="control-group">
-                    <label>文字枠線:</label>
-                    <div id="strokeList" class="stroke-list"></div>
-                    <button type="button" id="addStrokeBtn" class="add-stroke-btn">+ 枠線を追加</button>
-                    <small>太い枠線が外側、細い枠線が内側に重なります（最大5本）</small>
-                </div>
-
 
                 <div class="control-group">
-                    <label for="borderWidth">枠の太さ:</label>
+                    <label for="borderWidth">外枠の太さ:</label>
                     <input type="range" id="borderWidth" min="0" max="50" value="0">
                     <span id="borderWidthValue">0</span>px
+                    <small>キャンバスの外周に描画されます</small>
                 </div>
                 
                 <input type="hidden" id="textPosition" value="50">
@@ -225,7 +225,7 @@
                 </section>
 
                 <footer style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
-                    <p>Version 2.2.0 | Last updated: 2026-05-25 | <a href="v1/" style="color: #3498db;">旧バージョン (v1)</a></p>
+                    <p>Version 2.3.0 | Last updated: 2026-07-12 | <a href="v1/" style="color: #3498db;">旧バージョン (v1)</a></p>
                 </footer>
             </main>
         </div>

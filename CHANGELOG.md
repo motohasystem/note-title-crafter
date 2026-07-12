@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-07-12
+
+### Added
+- サイドパネルのテキストレイヤー一覧のプレビュー文字に文字枠を反映
+  - 複数の文字枠をCSSのtext-shadowで再現（太い枠が外側、細い枠が内側）
+  - 文字枠の追加・変更・削除時に即時反映
+- 画像がない場合（テキストのみの透過背景）でも外枠を描画
+
+### Changed
+- サイドパネルのコントロールを整理（文字色 → 文字枠 → 外枠の色 → 外枠の太さ の順）
+- UI文言を「文字枠」（テキストの縁取り）と「外枠」（キャンバス外周の枠）に使い分け
+
 ## [2.2.0] - 2026-05-25
 
 ### Added

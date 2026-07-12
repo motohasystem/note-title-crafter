@@ -141,4 +141,4 @@ function drawCanvas() {
 
 ---
 
-<small>バージョン 2.2.0 | 最終更新: 2026-05-25</small>
+<small>バージョン 2.3.0 | 最終更新: 2026-07-12</small>

@@ -548,12 +548,14 @@ function renderStrokeList() {
         widthInput.addEventListener('input', (e) => {
             stroke.width = parseInt(e.target.value);
             widthValue.textContent = `${stroke.width}px`;
+            renderLayerList();
             drawCanvas();
             saveSettingsToURL();
         });
 
         colorInput.addEventListener('input', (e) => {
             stroke.color = e.target.value;
+            renderLayerList();
             drawCanvas();
             saveSettingsToURL();
         });
@@ -561,6 +563,7 @@ function renderStrokeList() {
         deleteBtn.addEventListener('click', () => {
             layer.strokes.splice(idx, 1);
             renderStrokeList();
+            renderLayerList();
             drawCanvas();
             saveSettingsToURL();
         });
@@ -584,15 +587,39 @@ function addStroke() {
     const newWidth = Math.min(50, maxWidth > 0 ? maxWidth + 5 : 5);
     layer.strokes.push({ width: newWidth, color: layer.borderColor });
     renderStrokeList();
+    renderLayerList();
     drawCanvas();
     saveSettingsToURL();
 }
 
 addStrokeBtn.addEventListener('click', addStroke);
 
+// レイヤーの枠線設定をプレビュー用のtext-shadowに変換
+// キャンバスと同様に太い枠線ほど外側（下）に重なるよう、細い順に並べる
+function buildLayerPreviewShadow(layer, previewFontSize) {
+    const strokes = (layer.strokes || []).filter(s => s.width > 0);
+    if (strokes.length === 0) {
+        return '0 0 2px rgba(0,0,0,0.5)';
+    }
+    const scale = previewFontSize / layer.fontSize;
+    const shadows = [];
+    strokes.slice().sort((a, b) => a.width - b.width).forEach(stroke => {
+        const r = Math.min(6, Math.max(1, (stroke.width / 2) * scale));
+        const steps = 16;
+        for (let i = 0; i < steps; i++) {
+            const angle = (Math.PI * 2 * i) / steps;
+            const x = (Math.cos(angle) * r).toFixed(2);
+            const y = (Math.sin(angle) * r).toFixed(2);
+            shadows.push(`${x}px ${y}px 0 ${stroke.color}`);
+        }
+    });
+    return shadows.join(', ');
+}
+
 // レイヤーリストのUI描画
 function renderLayerList() {
     layerListEl.innerHTML = '';
+    const previewFontSize = parseFloat(getComputedStyle(layerListEl).fontSize) || 14;
     textLayers.forEach((layer, index) => {
         const item = document.createElement('div');
         item.className = 'layer-item' + (index === activeLayerIndex ? ' active' : '');
@@ -602,7 +629,7 @@ function renderLayerList() {
         const preview = layer.text.split('\n')[0] || `テキスト ${index + 1}`;
         label.textContent = preview.substring(0, 20) || `テキスト ${index + 1}`;
         label.style.color = layer.fontColor;
-        label.style.textShadow = '0 0 2px rgba(0,0,0,0.5)';
+        label.style.textShadow = buildLayerPreviewShadow(layer, previewFontSize);
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'layer-delete-btn';
@@ -1348,19 +1375,19 @@ function drawCanvas() {
         // 画像を描画
         ctx.drawImage(uploadedImage, x, y, scaledWidth, scaledHeight);
         ctx.restore();
+    }
 
-        // 枠を描画
-        const borderWidthVal = parseInt(borderWidth.value);
-        if (borderWidthVal > 0) {
-            ctx.strokeStyle = borderColor.value;
-            ctx.lineWidth = borderWidthVal;
-            ctx.strokeRect(
-                borderWidthVal / 2,
-                borderWidthVal / 2,
-                canvas.width - borderWidthVal,
-                canvas.height - borderWidthVal
-            );
-        }
+    // 外枠を描画（画像の有無に関わらず）
+    const borderWidthVal = parseInt(borderWidth.value);
+    if (borderWidthVal > 0) {
+        ctx.strokeStyle = borderColor.value;
+        ctx.lineWidth = borderWidthVal;
+        ctx.strokeRect(
+            borderWidthVal / 2,
+            borderWidthVal / 2,
+            canvas.width - borderWidthVal,
+            canvas.height - borderWidthVal
+        );
     }
 
     // スモークオーバーレイ（背景画像全体を暗くする）
