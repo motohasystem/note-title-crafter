@@ -2,6 +2,8 @@ const imageUpload = document.getElementById("imageUpload");
 const titleText = document.getElementById("titleText");
 const fontSize = document.getElementById("fontSize");
 const fontSizeValue = document.getElementById("fontSizeValue");
+const lineSpacing = document.getElementById("lineSpacing");
+const lineSpacingValue = document.getElementById("lineSpacingValue");
 const fontColor = document.getElementById("fontColor");
 const fontColorHex = document.getElementById("fontColorHex");
 const borderColor = document.getElementById("borderColor");
@@ -181,6 +183,7 @@ let textLayers = [
         id: 0,
         text: '',
         fontSize: 60,
+        lineSpacing: 1.2,
         fontColor: '#ffffff',
         borderColor: '#000000',
         textPosition: 50,
@@ -199,6 +202,7 @@ function createDefaultLayer() {
         id: nextLayerId++,
         text: '',
         fontSize: 60,
+        lineSpacing: 1.2,
         fontColor: '#ffffff',
         borderColor: '#000000',
         textPosition: 50,
@@ -487,6 +491,8 @@ function syncControlsToLayer(index) {
     titleText.value = layer.text;
     fontSize.value = layer.fontSize;
     fontSizeValue.textContent = layer.fontSize;
+    lineSpacing.value = layer.lineSpacing;
+    lineSpacingValue.textContent = layer.lineSpacing;
     fontColor.value = layer.fontColor;
     fontColorHex.value = layer.fontColor;
     borderColor.value = layer.borderColor;
@@ -505,6 +511,7 @@ function syncLayerFromControls(index) {
     if (!layer) return;
     layer.text = titleText.value;
     layer.fontSize = parseInt(fontSize.value);
+    layer.lineSpacing = parseFloat(lineSpacing.value);
     layer.fontColor = fontColor.value;
     layer.borderColor = borderColor.value;
     layer.textPosition = parseInt(textPosition.value);
@@ -668,6 +675,7 @@ function addLayer() {
     const lastLayer = textLayers[textLayers.length - 1];
     if (lastLayer) {
         newLayer.fontSize = lastLayer.fontSize;
+        newLayer.lineSpacing = lastLayer.lineSpacing;
         newLayer.fontColor = lastLayer.fontColor;
         newLayer.borderColor = lastLayer.borderColor;
         newLayer.textShadow = lastLayer.textShadow;
@@ -703,6 +711,14 @@ fontSize.addEventListener("input", (e) => {
     fontSizeValue.textContent = e.target.value;
     syncLayerFromControls(activeLayerIndex);
     renderLayerList();
+    drawCanvas();
+    saveSettingsToURL();
+});
+
+// 行間スライダーの値を表示
+lineSpacing.addEventListener("input", (e) => {
+    lineSpacingValue.textContent = e.target.value;
+    syncLayerFromControls(activeLayerIndex);
     drawCanvas();
     saveSettingsToURL();
 });
@@ -1031,6 +1047,7 @@ const defaultValues = {
 // レイヤーのデフォルト値
 const layerDefaults = {
     fontSize: 60,
+    lineSpacing: 1.2,
     fontColor: '#ffffff',
     borderColor: '#000000',
     textPosition: 50,
@@ -1100,6 +1117,7 @@ function saveSettingsToURL() {
         const obj = {};
         if (layer.text) obj.t = layer.text;
         if (layer.fontSize !== layerDefaults.fontSize) obj.fs = layer.fontSize;
+        if (layer.lineSpacing !== layerDefaults.lineSpacing) obj.ls = layer.lineSpacing;
         if (layer.fontColor !== layerDefaults.fontColor) obj.fc = compressColor(layer.fontColor);
         if (layer.borderColor !== layerDefaults.borderColor) obj.bc = compressColor(layer.borderColor);
         if (layer.textPosition !== layerDefaults.textPosition) obj.tp = layer.textPosition;
@@ -1225,6 +1243,7 @@ function loadSettingsFromURL() {
                     id: i,
                     text: data.t || '',
                     fontSize: data.fs !== undefined ? data.fs : layerDefaults.fontSize,
+                    lineSpacing: data.ls !== undefined ? data.ls : layerDefaults.lineSpacing,
                     fontColor: data.fc ? expandColor(data.fc) : layerDefaults.fontColor,
                     borderColor: borderColor,
                     textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
@@ -1431,7 +1450,7 @@ function drawTextLayer(layer) {
 
     // 改行で分割
     const lines = text.split("\n");
-    const lineHeight = fontSizeVal * 1.2;
+    const lineHeight = fontSizeVal * (layer.lineSpacing || 1.2);
 
     // 各行を幅に収まるように分割
     const wrappedLines = [];
@@ -1561,6 +1580,7 @@ function saveToHistory() {
         textLayers: textLayers.map(l => ({
             text: l.text,
             fontSize: l.fontSize,
+            lineSpacing: l.lineSpacing,
             fontColor: l.fontColor,
             borderColor: l.borderColor,
             textPosition: l.textPosition,
@@ -1709,6 +1729,7 @@ function loadHistoryItem(item) {
                 id: i,
                 text: l.text || '',
                 fontSize: l.fontSize || 60,
+                lineSpacing: l.lineSpacing !== undefined ? l.lineSpacing : 1.2,
                 fontColor: l.fontColor || '#ffffff',
                 borderColor: borderColor,
                 textPosition: l.textPosition !== undefined ? l.textPosition : 50,
@@ -1732,6 +1753,7 @@ function loadHistoryItem(item) {
             id: 0,
             text: '', // テキスト自体は反映させない（旧動作と同じ）
             fontSize: parseInt(item.fontSize) || 60,
+            lineSpacing: 1.2,
             fontColor: item.fontColor || '#ffffff',
             borderColor: borderColor,
             textPosition: pos,
