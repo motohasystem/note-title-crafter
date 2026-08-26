@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-08-26
+
+### Added
+- テキストの左右の位置（左寄せ／中央／右寄せ）をレイヤーごとに設定可能に
+  - 文字列全体をキャンバスの左右どちらかに寄せる（余白は折り返し幅と同じ左右5%）
+  - 設定はURLパラメータ（`hp`）と履歴に保存
+- テキストの行揃え（左揃え／中央揃え／右揃え）をレイヤーごとに設定可能に
+  - 最長行の幅をブロック幅として、その中で各行を揃える（「左右の位置」と組み合わせて使用）
+  - 設定はURLパラメータ（`ta`）と履歴に保存
+- いずれもレイヤー追加時は直前のレイヤーから設定を引き継ぎ
+- 上記2つのコントロールは「レイアウト」として1行に集約し、インラインSVGのアイコン表示（ツールチップとスクリーンリーダー用のテキストラベル付き）
+
 ## [2.3.0] - 2026-07-12
 
 ### Added

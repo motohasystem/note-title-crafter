@@ -103,6 +103,46 @@
                 </div>
 
                 <div class="control-group">
+                    <label>レイアウト:</label>
+                    <div class="layout-controls">
+                        <div class="text-align-group" role="radiogroup" aria-label="左右の位置">
+                            <label class="text-align-option" title="左寄せ">
+                                <input type="radio" name="hPosition" value="left">
+                                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><rect x="1.7" y="4" width="20.6" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.35"/><rect x="4.5" y="8.6" width="10" height="2.4" rx="1.2" fill="currentColor"/><rect x="4.5" y="13" width="7" height="2.4" rx="1.2" fill="currentColor"/></svg>
+                                <span class="sr-only">左寄せ</span>
+                            </label>
+                            <label class="text-align-option" title="中央">
+                                <input type="radio" name="hPosition" value="center" checked>
+                                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><rect x="1.7" y="4" width="20.6" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.35"/><rect x="7" y="8.6" width="10" height="2.4" rx="1.2" fill="currentColor"/><rect x="8.5" y="13" width="7" height="2.4" rx="1.2" fill="currentColor"/></svg>
+                                <span class="sr-only">中央</span>
+                            </label>
+                            <label class="text-align-option" title="右寄せ">
+                                <input type="radio" name="hPosition" value="right">
+                                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><rect x="1.7" y="4" width="20.6" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.35"/><rect x="9.5" y="8.6" width="10" height="2.4" rx="1.2" fill="currentColor"/><rect x="12.5" y="13" width="7" height="2.4" rx="1.2" fill="currentColor"/></svg>
+                                <span class="sr-only">右寄せ</span>
+                            </label>
+                        </div>
+                        <div class="text-align-group" role="radiogroup" aria-label="行揃え">
+                            <label class="text-align-option" title="左揃え">
+                                <input type="radio" name="textAlign" value="left">
+                                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor"/><rect x="4" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="4" y="13" width="14" height="2" rx="1" fill="currentColor"/><rect x="4" y="17" width="8" height="2" rx="1" fill="currentColor"/></svg>
+                                <span class="sr-only">左揃え</span>
+                            </label>
+                            <label class="text-align-option" title="中央揃え">
+                                <input type="radio" name="textAlign" value="center" checked>
+                                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="5" y="13" width="14" height="2" rx="1" fill="currentColor"/><rect x="8" y="17" width="8" height="2" rx="1" fill="currentColor"/></svg>
+                                <span class="sr-only">中央揃え</span>
+                            </label>
+                            <label class="text-align-option" title="右揃え">
+                                <input type="radio" name="textAlign" value="right">
+                                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor"/><rect x="10" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="6" y="13" width="14" height="2" rx="1" fill="currentColor"/><rect x="12" y="17" width="8" height="2" rx="1" fill="currentColor"/></svg>
+                                <span class="sr-only">右揃え</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
                     <label id="fontDropdownLabel">フォント:</label>
                     <div class="font-dropdown" id="fontDropdown">
                         <button type="button" class="font-dropdown-trigger" id="fontDropdownTrigger"
@@ -231,7 +271,7 @@
                 </section>
 
                 <footer style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
-                    <p>Version 2.3.0 | Last updated: 2026-07-12 | <a href="v1/" style="color: #3498db;">旧バージョン (v1)</a></p>
+                    <p>Version 2.4.0 | Last updated: 2026-08-26 | <a href="v1/" style="color: #3498db;">旧バージョン (v1)</a></p>
                 </footer>
             </main>
         </div>

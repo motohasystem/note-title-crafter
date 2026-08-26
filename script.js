@@ -13,6 +13,8 @@ const borderWidthValue = document.getElementById("borderWidthValue");
 const textPosition = document.getElementById("textPosition");
 const textPositionValue = document.getElementById("textPositionValue");
 const textShadow = document.getElementById("textShadow");
+const textAlignInputs = document.querySelectorAll('input[name="textAlign"]');
+const hPositionInputs = document.querySelectorAll('input[name="hPosition"]');
 const textBackground = document.getElementById("textBackground");
 const textPadding = document.getElementById("textPadding");
 const textPaddingValue = document.getElementById("textPaddingValue");
@@ -187,6 +189,8 @@ let textLayers = [
         fontColor: '#ffffff',
         borderColor: '#000000',
         textPosition: 50,
+        textAlign: 'center',
+        hPosition: 'center',
         textShadow: true,
         strokes: [], // [{width: number, color: string}]
         fontFamily: DEFAULT_FONT_KEY,
@@ -206,6 +210,8 @@ function createDefaultLayer() {
         fontColor: '#ffffff',
         borderColor: '#000000',
         textPosition: 50,
+        textAlign: 'center',
+        hPosition: 'center',
         textShadow: true,
         strokes: [],
         fontFamily: DEFAULT_FONT_KEY,
@@ -484,6 +490,34 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// 行揃えラジオの値を取得
+function getTextAlignFromControls() {
+    const checked = Array.from(textAlignInputs).find(input => input.checked);
+    return checked ? checked.value : 'center';
+}
+
+// 行揃えラジオに値を反映
+function setTextAlignControls(value) {
+    const align = ['left', 'center', 'right'].includes(value) ? value : 'center';
+    textAlignInputs.forEach(input => {
+        input.checked = input.value === align;
+    });
+}
+
+// 左右の位置ラジオの値を取得
+function getHPositionFromControls() {
+    const checked = Array.from(hPositionInputs).find(input => input.checked);
+    return checked ? checked.value : 'center';
+}
+
+// 左右の位置ラジオに値を反映
+function setHPositionControls(value) {
+    const pos = ['left', 'center', 'right'].includes(value) ? value : 'center';
+    hPositionInputs.forEach(input => {
+        input.checked = input.value === pos;
+    });
+}
+
 // アクティブレイヤーのデータからUIコントロールに反映
 function syncControlsToLayer(index) {
     const layer = textLayers[index];
@@ -500,6 +534,8 @@ function syncControlsToLayer(index) {
     textPosition.value = layer.textPosition;
     textPositionValue.textContent = layer.textPosition;
     textShadow.checked = layer.textShadow;
+    setTextAlignControls(layer.textAlign);
+    setHPositionControls(layer.hPosition);
     setDropdownCurrentLabel(layer.fontFamily || DEFAULT_FONT_KEY);
     if (!fontDropdownPanel.hidden) updateDropdownItemHighlight();
     renderStrokeList();
@@ -516,6 +552,8 @@ function syncLayerFromControls(index) {
     layer.borderColor = borderColor.value;
     layer.textPosition = parseInt(textPosition.value);
     layer.textShadow = textShadow.checked;
+    layer.textAlign = getTextAlignFromControls();
+    layer.hPosition = getHPositionFromControls();
     // fontFamily はドロップダウン操作で直接ミューテートされる
     // strokes は UI から直接ミューテートされる
 }
@@ -679,6 +717,8 @@ function addLayer() {
         newLayer.fontColor = lastLayer.fontColor;
         newLayer.borderColor = lastLayer.borderColor;
         newLayer.textShadow = lastLayer.textShadow;
+        newLayer.textAlign = lastLayer.textAlign;
+        newLayer.hPosition = lastLayer.hPosition;
         newLayer.strokes = lastLayer.strokes.map(s => ({ width: s.width, color: s.color }));
         newLayer.fontFamily = lastLayer.fontFamily;
     }
@@ -869,6 +909,20 @@ textShadow.addEventListener("change", () => {
     drawCanvas();
     saveSettingsToURL();
 });
+textAlignInputs.forEach(input => {
+    input.addEventListener("change", () => {
+        syncLayerFromControls(activeLayerIndex);
+        drawCanvas();
+        saveSettingsToURL();
+    });
+});
+hPositionInputs.forEach(input => {
+    input.addEventListener("change", () => {
+        syncLayerFromControls(activeLayerIndex);
+        drawCanvas();
+        saveSettingsToURL();
+    });
+});
 textBackground.addEventListener("change", () => {
     drawCanvas();
     saveSettingsToURL();
@@ -1013,6 +1067,8 @@ const paramMapping = {
     borderColor: 'bc',
     borderWidth: 'bw',
     textPosition: 'tp',
+    textAlign: 'ta',
+    hPosition: 'hp',
     textShadow: 'ts',
     textBackground: 'tb',
     textPadding: 'pd',
@@ -1051,6 +1107,8 @@ const layerDefaults = {
     fontColor: '#ffffff',
     borderColor: '#000000',
     textPosition: 50,
+    textAlign: 'center',
+    hPosition: 'center',
     textShadow: true,
     fontFamily: DEFAULT_FONT_KEY
 };
@@ -1072,6 +1130,13 @@ function expandColor(color) {
         color = '#' + color;
     }
     return color;
+}
+
+// 左右指定の短縮表記を展開（l/c/r → left/center/right）
+function expandHorizontal(value) {
+    if (value === 'l' || value === 'left') return 'left';
+    if (value === 'r' || value === 'right') return 'right';
+    return 'center';
 }
 
 // URLパラメータに設定を保存
@@ -1121,6 +1186,8 @@ function saveSettingsToURL() {
         if (layer.fontColor !== layerDefaults.fontColor) obj.fc = compressColor(layer.fontColor);
         if (layer.borderColor !== layerDefaults.borderColor) obj.bc = compressColor(layer.borderColor);
         if (layer.textPosition !== layerDefaults.textPosition) obj.tp = layer.textPosition;
+        if (layer.textAlign && layer.textAlign !== layerDefaults.textAlign) obj.ta = layer.textAlign[0];
+        if (layer.hPosition && layer.hPosition !== layerDefaults.hPosition) obj.hp = layer.hPosition[0];
         if (layer.textShadow !== layerDefaults.textShadow) obj.ts = layer.textShadow ? 1 : 0;
         if (layer.strokes && layer.strokes.length > 0) {
             obj.s = layer.strokes.map(stroke => ({
@@ -1247,6 +1314,8 @@ function loadSettingsFromURL() {
                     fontColor: data.fc ? expandColor(data.fc) : layerDefaults.fontColor,
                     borderColor: borderColor,
                     textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
+                    textAlign: expandHorizontal(data.ta),
+                    hPosition: expandHorizontal(data.hp),
                     textShadow: data.ts !== undefined ? !!data.ts : layerDefaults.textShadow,
                     strokes: strokes,
                     fontFamily: (data.ff && (FONT_OPTIONS_BY_KEY.has(data.ff) || data.ff.startsWith('local:'))) ? data.ff : layerDefaults.fontFamily,
@@ -1435,7 +1504,8 @@ function drawTextLayer(layer) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    let textX = canvas.width / 2;
+    const align = ["left", "center", "right"].includes(layer.textAlign) ? layer.textAlign : "center";
+    const hPos = ["left", "center", "right"].includes(layer.hPosition) ? layer.hPosition : "center";
     let textY = canvas.height * (layer.textPosition / 100);
 
     // 影を描画
@@ -1477,6 +1547,12 @@ function drawTextLayer(layer) {
             maxTextWidth = Math.max(maxTextWidth, tw);
         }
     });
+    // 左右の位置に応じた文字列ブロックの中心X（余白は折り返し幅と同じ左右5%）
+    const sideMargin = canvas.width * 0.05;
+    const textX = hPos === "left" ? sideMargin + maxTextWidth / 2
+        : hPos === "right" ? canvas.width - sideMargin - maxTextWidth / 2
+        : canvas.width / 2;
+
     const hitPadding = 30;
     const bounds = {
         x: textX - maxTextWidth / 2 - hitPadding,
@@ -1491,6 +1567,12 @@ function drawTextLayer(layer) {
         .slice()
         .sort((a, b) => b.width - a.width);
 
+    // 行揃えに応じた描画基準X（最長行の幅をブロック幅として、その中で各行を揃える）
+    ctx.textAlign = align;
+    const lineX = align === "left" ? textX - maxTextWidth / 2
+        : align === "right" ? textX + maxTextWidth / 2
+        : textX;
+
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
 
@@ -1500,7 +1582,7 @@ function drawTextLayer(layer) {
         sortedStrokes.forEach(stroke => {
             ctx.strokeStyle = stroke.color;
             ctx.lineWidth = stroke.width;
-            ctx.strokeText(line, textX, ly);
+            ctx.strokeText(line, lineX, ly);
         });
     });
 
@@ -1508,7 +1590,7 @@ function drawTextLayer(layer) {
     ctx.fillStyle = layer.fontColor;
     wrappedLines.forEach((line, index) => {
         if (line.trim() !== "") {
-            ctx.fillText(line, textX, startY + index * lineHeight);
+            ctx.fillText(line, lineX, startY + index * lineHeight);
         }
     });
 
@@ -1584,6 +1666,8 @@ function saveToHistory() {
             fontColor: l.fontColor,
             borderColor: l.borderColor,
             textPosition: l.textPosition,
+            textAlign: l.textAlign,
+            hPosition: l.hPosition,
             textShadow: l.textShadow,
             strokes: l.strokes.map(s => ({ width: s.width, color: s.color })),
             fontFamily: l.fontFamily
@@ -1733,6 +1817,8 @@ function loadHistoryItem(item) {
                 fontColor: l.fontColor || '#ffffff',
                 borderColor: borderColor,
                 textPosition: l.textPosition !== undefined ? l.textPosition : 50,
+                textAlign: ['left', 'center', 'right'].includes(l.textAlign) ? l.textAlign : 'center',
+                hPosition: ['left', 'center', 'right'].includes(l.hPosition) ? l.hPosition : 'center',
                 textShadow: l.textShadow !== undefined ? l.textShadow : true,
                 strokes: strokes,
                 fontFamily: (l.fontFamily && (FONT_OPTIONS_BY_KEY.has(l.fontFamily) || l.fontFamily.startsWith('local:'))) ? l.fontFamily : DEFAULT_FONT_KEY,
@@ -1757,6 +1843,8 @@ function loadHistoryItem(item) {
             fontColor: item.fontColor || '#ffffff',
             borderColor: borderColor,
             textPosition: pos,
+            textAlign: 'center',
+            hPosition: 'center',
             textShadow: item.textShadow !== undefined ? item.textShadow : true,
             strokes: sw > 0 ? [{ width: sw, color: borderColor }] : [],
             fontFamily: DEFAULT_FONT_KEY,
