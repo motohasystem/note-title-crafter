@@ -4,6 +4,8 @@ const fontSize = document.getElementById("fontSize");
 const fontSizeValue = document.getElementById("fontSizeValue");
 const lineSpacing = document.getElementById("lineSpacing");
 const lineSpacingValue = document.getElementById("lineSpacingValue");
+const textRotation = document.getElementById("textRotation");
+const textRotationValue = document.getElementById("textRotationValue");
 const fontColor = document.getElementById("fontColor");
 const fontColorHex = document.getElementById("fontColorHex");
 const borderColor = document.getElementById("borderColor");
@@ -186,6 +188,7 @@ let textLayers = [
         text: '',
         fontSize: 60,
         lineSpacing: 1.2,
+        rotation: 0,
         fontColor: '#ffffff',
         borderColor: '#000000',
         textPosition: 50,
@@ -207,6 +210,7 @@ function createDefaultLayer() {
         text: '',
         fontSize: 60,
         lineSpacing: 1.2,
+        rotation: 0,
         fontColor: '#ffffff',
         borderColor: '#000000',
         textPosition: 50,
@@ -527,6 +531,8 @@ function syncControlsToLayer(index) {
     fontSizeValue.textContent = layer.fontSize;
     lineSpacing.value = layer.lineSpacing;
     lineSpacingValue.textContent = layer.lineSpacing;
+    textRotation.value = layer.rotation;
+    textRotationValue.textContent = layer.rotation;
     fontColor.value = layer.fontColor;
     fontColorHex.value = layer.fontColor;
     borderColor.value = layer.borderColor;
@@ -548,6 +554,7 @@ function syncLayerFromControls(index) {
     layer.text = titleText.value;
     layer.fontSize = parseInt(fontSize.value);
     layer.lineSpacing = parseFloat(lineSpacing.value);
+    layer.rotation = parseInt(textRotation.value);
     layer.fontColor = fontColor.value;
     layer.borderColor = borderColor.value;
     layer.textPosition = parseInt(textPosition.value);
@@ -714,6 +721,7 @@ function addLayer() {
     if (lastLayer) {
         newLayer.fontSize = lastLayer.fontSize;
         newLayer.lineSpacing = lastLayer.lineSpacing;
+        newLayer.rotation = lastLayer.rotation;
         newLayer.fontColor = lastLayer.fontColor;
         newLayer.borderColor = lastLayer.borderColor;
         newLayer.textShadow = lastLayer.textShadow;
@@ -761,6 +769,24 @@ lineSpacing.addEventListener("input", (e) => {
     syncLayerFromControls(activeLayerIndex);
     drawCanvas();
     saveSettingsToURL();
+});
+
+// 傾きスライダーの値を表示
+textRotation.addEventListener("input", (e) => {
+    textRotationValue.textContent = e.target.value;
+    syncLayerFromControls(activeLayerIndex);
+    drawCanvas();
+    saveSettingsToURL();
+});
+
+// スライダーのリセットボタン（対象スライダーをデフォルト値に戻してinputイベントを発火）
+document.querySelectorAll(".slider-reset-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+        const target = document.getElementById(btn.dataset.resetTarget);
+        if (!target) return;
+        target.value = btn.dataset.resetValue;
+        target.dispatchEvent(new Event("input"));
+    });
 });
 
 // 枠の太さスライダーの値を表示
@@ -1104,6 +1130,7 @@ const defaultValues = {
 const layerDefaults = {
     fontSize: 60,
     lineSpacing: 1.2,
+    rotation: 0,
     fontColor: '#ffffff',
     borderColor: '#000000',
     textPosition: 50,
@@ -1183,6 +1210,7 @@ function saveSettingsToURL() {
         if (layer.text) obj.t = layer.text;
         if (layer.fontSize !== layerDefaults.fontSize) obj.fs = layer.fontSize;
         if (layer.lineSpacing !== layerDefaults.lineSpacing) obj.ls = layer.lineSpacing;
+        if (layer.rotation && layer.rotation !== layerDefaults.rotation) obj.ro = layer.rotation;
         if (layer.fontColor !== layerDefaults.fontColor) obj.fc = compressColor(layer.fontColor);
         if (layer.borderColor !== layerDefaults.borderColor) obj.bc = compressColor(layer.borderColor);
         if (layer.textPosition !== layerDefaults.textPosition) obj.tp = layer.textPosition;
@@ -1311,6 +1339,7 @@ function loadSettingsFromURL() {
                     text: data.t || '',
                     fontSize: data.fs !== undefined ? data.fs : layerDefaults.fontSize,
                     lineSpacing: data.ls !== undefined ? data.ls : layerDefaults.lineSpacing,
+                    rotation: clampRotation(data.ro),
                     fontColor: data.fc ? expandColor(data.fc) : layerDefaults.fontColor,
                     borderColor: borderColor,
                     textPosition: data.tp !== undefined ? data.tp : layerDefaults.textPosition,
@@ -1554,12 +1583,25 @@ function drawTextLayer(layer) {
         : canvas.width / 2;
 
     const hitPadding = 30;
+    const angle = (layer.rotation || 0) * Math.PI / 180;
     const bounds = {
         x: textX - maxTextWidth / 2 - hitPadding,
         y: startY - lineHeight / 2 - hitPadding,
         width: maxTextWidth + hitPadding * 2,
-        height: totalHeight + hitPadding * 2
+        height: totalHeight + hitPadding * 2,
+        // 傾き（ヒットテスト時に回転中心まわりで逆回転して判定する）
+        cx: textX,
+        cy: textY,
+        angle: angle
     };
+
+    // 文字列ブロックの中心を軸に傾ける
+    ctx.save();
+    if (angle) {
+        ctx.translate(textX, textY);
+        ctx.rotate(angle);
+        ctx.translate(-textX, -textY);
+    }
 
     // 枠線を太い順（外側→内側）に描画してから本体を描画
     const sortedStrokes = (layer.strokes || [])
@@ -1599,8 +1641,31 @@ function drawTextLayer(layer) {
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+    ctx.restore();
 
     return bounds;
+}
+
+// 傾きの値を -45〜45 の整数に正規化
+function clampRotation(value) {
+    const n = parseInt(value);
+    if (isNaN(n)) return 0;
+    return Math.max(-45, Math.min(45, n));
+}
+
+// 点がレイヤーの（傾きを考慮した）当たり判定内にあるか
+function isPointInLayerBounds(bounds, x, y) {
+    if (!bounds) return false;
+    if (bounds.angle) {
+        const dx = x - bounds.cx;
+        const dy = y - bounds.cy;
+        const cos = Math.cos(-bounds.angle);
+        const sin = Math.sin(-bounds.angle);
+        x = bounds.cx + dx * cos - dy * sin;
+        y = bounds.cy + dx * sin + dy * cos;
+    }
+    return x >= bounds.x && x <= bounds.x + bounds.width &&
+        y >= bounds.y && y <= bounds.y + bounds.height;
 }
 
 // テキストを改行して配列で返す
@@ -1663,6 +1728,7 @@ function saveToHistory() {
             text: l.text,
             fontSize: l.fontSize,
             lineSpacing: l.lineSpacing,
+            rotation: l.rotation,
             fontColor: l.fontColor,
             borderColor: l.borderColor,
             textPosition: l.textPosition,
@@ -1814,6 +1880,7 @@ function loadHistoryItem(item) {
                 text: l.text || '',
                 fontSize: l.fontSize || 60,
                 lineSpacing: l.lineSpacing !== undefined ? l.lineSpacing : 1.2,
+                rotation: clampRotation(l.rotation),
                 fontColor: l.fontColor || '#ffffff',
                 borderColor: borderColor,
                 textPosition: l.textPosition !== undefined ? l.textPosition : 50,
@@ -1840,6 +1907,7 @@ function loadHistoryItem(item) {
             text: '', // テキスト自体は反映させない（旧動作と同じ）
             fontSize: parseInt(item.fontSize) || 60,
             lineSpacing: 1.2,
+            rotation: 0,
             fontColor: item.fontColor || '#ffffff',
             borderColor: borderColor,
             textPosition: pos,
@@ -2145,9 +2213,7 @@ canvas.addEventListener("mousedown", (e) => {
     // テキストレイヤーのヒットテスト（上のレイヤーから逆順にチェック）
     for (let i = textLayers.length - 1; i >= 0; i--) {
         const layer = textLayers[i];
-        if (layer.bounds &&
-            canvasX >= layer.bounds.x && canvasX <= layer.bounds.x + layer.bounds.width &&
-            canvasY >= layer.bounds.y && canvasY <= layer.bounds.y + layer.bounds.height) {
+        if (isPointInLayerBounds(layer.bounds, canvasX, canvasY)) {
 
             isTextDragging = true;
             draggedLayerIndex = i;

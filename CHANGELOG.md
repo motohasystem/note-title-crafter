@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- テキストを傾ける機能
+  - -45°〜45°の範囲を1°刻みで指定（デフォルト0°）、レイヤーごとに設定可能
+  - 文字列ブロックの中心を軸に回転、「0°」ボタンで傾きをリセット
+  - 傾けたテキストもクリック・ドラッグで選択・移動可能（当たり判定も回転に追従）
+  - 設定はURLパラメータ（`ro`）と履歴に保存、レイヤー追加時は直前のレイヤーから引き継ぎ
+
+### Changed
+- フォントサイズ・行間・傾きのスライダーのデザインを統一
+  - 「スライダー｜単位付きの値｜リセットボタン（↺）」の1行構成にそろえ、値の桁数が変わってもスライダーの長さが変わらないように
+  - 行間の値に単位「倍」を表示
+
 ## [2.4.0] - 2026-08-26
 
 ### Added

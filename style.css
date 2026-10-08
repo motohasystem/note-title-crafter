@@ -344,6 +344,50 @@ body.drag-over::after {
     margin-left: 4px;
 }
 
+/* フォントサイズ・行間・傾きのスライダー行（スライダー｜値｜リセット） */
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-group .slider-row input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    margin: 0;
+}
+
+.slider-value {
+    flex-shrink: 0;
+    min-width: 3.6em;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-size: 14px;
+    color: #333;
+}
+
+.slider-reset-btn {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background-color: #f0f0f0;
+    color: #555;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: background-color 0.2s;
+}
+
+.slider-reset-btn:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
 .eyedropper-btn:hover {
     background-color: #138496;
 }
