@@ -569,6 +569,7 @@ body.drag-over::after {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
     padding: 4px;
     background-color: #f8f9fa;
     border-radius: 4px;
@@ -594,6 +595,23 @@ body.drag-over::after {
     border-radius: 4px;
     cursor: pointer;
     flex-shrink: 0;
+}
+
+.stroke-color-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-basis: 100%;
+}
+
+.stroke-item .stroke-color-hex {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: monospace;
 }
 
 .stroke-delete-btn {

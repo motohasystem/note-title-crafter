@@ -591,6 +591,18 @@ function renderStrokeList() {
         colorInput.className = 'stroke-color-input';
         colorInput.value = stroke.color;
 
+        const colorHexInput = document.createElement('input');
+        colorHexInput.type = 'text';
+        colorHexInput.className = 'stroke-color-hex';
+        colorHexInput.value = stroke.color;
+        colorHexInput.placeholder = '#000000';
+        colorHexInput.maxLength = 7;
+        colorHexInput.spellcheck = false;
+        colorHexInput.setAttribute('aria-label', '文字枠の色（6桁のカラーコード）');
+
+        const colorGroup = document.createElement('div');
+        colorGroup.className = 'stroke-color-group';
+
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = 'stroke-delete-btn';
@@ -607,9 +619,32 @@ function renderStrokeList() {
 
         colorInput.addEventListener('input', (e) => {
             stroke.color = e.target.value;
+            colorHexInput.value = stroke.color;
             renderLayerList();
             drawCanvas();
             saveSettingsToURL();
+        });
+
+        // 6桁のカラーコード入力（#は省略可）
+        colorHexInput.addEventListener('input', (e) => {
+            let value = e.target.value.trim();
+            if (!value.startsWith('#')) {
+                value = '#' + value;
+            }
+            e.target.value = value;
+
+            if (isValidHex(value)) {
+                stroke.color = value.toLowerCase();
+                colorInput.value = stroke.color;
+                renderLayerList();
+                drawCanvas();
+                saveSettingsToURL();
+            }
+        });
+
+        // 確定時に不正な値なら現在の色に戻す
+        colorHexInput.addEventListener('blur', () => {
+            colorHexInput.value = stroke.color;
         });
 
         deleteBtn.addEventListener('click', () => {
@@ -620,10 +655,13 @@ function renderStrokeList() {
             saveSettingsToURL();
         });
 
+        colorGroup.appendChild(colorInput);
+        colorGroup.appendChild(colorHexInput);
+
         item.appendChild(widthInput);
         item.appendChild(widthValue);
-        item.appendChild(colorInput);
         item.appendChild(deleteBtn);
+        item.appendChild(colorGroup);
         strokeListEl.appendChild(item);
     });
 
