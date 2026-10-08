@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.5.0] - 2026-10-08
 
 ### Added
 - テキストを傾ける機能
@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 設定はURLパラメータ（`ro`）と履歴に保存、レイヤー追加時は直前のレイヤーから引き継ぎ
 - 文字枠の色を6桁のカラーコード（例: `#ff3366`）で入力できる欄を追加
   - `#` は省略可、不正な値は入力欄から離れた時に元の色へ戻す
+- 作業内容をブラウザに保存し、次に開いたときに再開できる機能
+  - テキストレイヤーと設定は localStorage、背景画像は IndexedDB に自動保存
+  - URLに設定が付いていない状態で開いたときに前回の作業を復元（共有URLで開いた場合はURLの設定を優先、画像は復元）
+  - 「クリア」で保存内容も消去
 
 ### Changed
 - フォントサイズ・行間・傾きのスライダーのデザインを統一

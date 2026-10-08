@@ -69,6 +69,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **URLベース**: すべての設定（タイトルテキストを除く）はURLパラメータに保存
 - **共有メカニズム**: 生成されたURLは正確な設定を復元するために共有可能
 - **パラメータマッピング**: 各UIコントロールは特定のURLパラメータにマップ
+- **ブラウザ保存**: URLと同じクエリ文字列を localStorage（`morimaruSession`）に、背景画像を IndexedDB（DB `morimaru` / store `session`）に保存し、URLに設定がない状態で開くと前回の作業を復元
 
 ## コードパターン
 
@@ -145,4 +146,4 @@ function drawCanvas() {
 
 ---
 
-<small>バージョン 2.4.0 | 最終更新: 2026-08-26</small>
+<small>バージョン 2.5.0 | 最終更新: 2026-10-08</small>

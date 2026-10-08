@@ -993,19 +993,97 @@ textBackground.addEventListener("change", () => {
 });
 
 // 画像を読み込む共通関数
-function loadImage(src) {
+// restore: 前回の作業から復元する場合は true（保存済みのフィットモードと位置を維持する）
+function loadImage(src, { restore = false } = {}) {
     const img = new Image();
     img.onload = () => {
         uploadedImage = img;
         noImageMessage.style.display = "none";
         downloadBtn.disabled = false;
         copyImageBtn.disabled = false;
-        fitMode = "contain";
-        imageOffsetX = 0;
-        imageOffsetY = 0;
+        if (!restore) {
+            fitMode = "contain";
+            imageOffsetX = 0;
+            imageOffsetY = 0;
+            saveImageToSession(src);
+            saveSettingsToURL();
+        }
         drawCanvas();
     };
     img.src = src;
+}
+
+// ===== 作業内容のブラウザ保存（次回起動時に再開） =====
+// 設定（テキスト含む）は URL と同じクエリ文字列を localStorage に、画像は容量の大きい IndexedDB に保存する
+const SESSION_SETTINGS_KEY = 'morimaruSession';
+const SESSION_DB_NAME = 'morimaru';
+const SESSION_STORE_NAME = 'session';
+const SESSION_IMAGE_KEY = 'image';
+
+function saveSettingsToSession(queryString) {
+    try {
+        localStorage.setItem(SESSION_SETTINGS_KEY, queryString);
+    } catch (e) {
+        // 保存できない環境（プライベートモード等）では何もしない
+    }
+}
+
+function loadSettingsFromSession() {
+    try {
+        return localStorage.getItem(SESSION_SETTINGS_KEY);
+    } catch (e) {
+        return null;
+    }
+}
+
+function openSessionDB() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+            reject(new Error('IndexedDB is not supported'));
+            return;
+        }
+        const request = indexedDB.open(SESSION_DB_NAME, 1);
+        request.onupgradeneeded = () => {
+            request.result.createObjectStore(SESSION_STORE_NAME);
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// 画像ストアに対して1回の操作を行う（mode: 'readonly' | 'readwrite'）
+async function withSessionStore(mode, operation) {
+    const db = await openSessionDB();
+    try {
+        return await new Promise((resolve, reject) => {
+            const tx = db.transaction(SESSION_STORE_NAME, mode);
+            const request = operation(tx.objectStore(SESSION_STORE_NAME));
+            tx.oncomplete = () => resolve(request.result);
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+        });
+    } finally {
+        db.close();
+    }
+}
+
+function saveImageToSession(src) {
+    withSessionStore('readwrite', store => store.put(src, SESSION_IMAGE_KEY))
+        .catch(e => console.warn('画像をブラウザに保存できませんでした', e));
+}
+
+function clearImageFromSession() {
+    withSessionStore('readwrite', store => store.delete(SESSION_IMAGE_KEY))
+        .catch(e => console.warn('保存した画像を削除できませんでした', e));
+}
+
+async function restoreImageFromSession() {
+    try {
+        const src = await withSessionStore('readonly', store => store.get(SESSION_IMAGE_KEY));
+        if (src) loadImage(src, { restore: true });
+    } catch (e) {
+        console.warn('保存した画像を読み込めませんでした', e);
+    }
 }
 
 // 画像アップロード処理
@@ -1276,11 +1354,12 @@ function saveSettingsToURL() {
     const queryString = params.toString();
     const newUrl = window.location.pathname + (queryString ? "?" + queryString : "");
     window.history.replaceState({}, "", newUrl);
+    saveSettingsToSession(queryString);
 }
 
-// URLパラメータから設定を読み込み
-function loadSettingsFromURL() {
-    const params = new URLSearchParams(window.location.search);
+// URLパラメータから設定を読み込み（search を渡すとそのクエリ文字列から読み込む）
+function loadSettingsFromURL(search = window.location.search) {
+    const params = new URLSearchParams(search);
 
     // パラメータを確認する関数（短縮形と旧形式の両方をチェック）
     const getParam = (longName) => {
@@ -1442,10 +1521,18 @@ function loadSettingsFromURL() {
 // ページ読み込み時に初期化
 window.addEventListener("load", async () => {
     populateFontSelect(); // フォント選択肢を展開（URL読込前に必要）
-    loadSettingsFromURL(); // 先にURLから設定を読み込む
+    // 先に設定を読み込む（URLに設定があればそれを優先し、なければ前回の作業を復元）
+    const savedSession = loadSettingsFromSession();
+    if (!window.location.search && savedSession) {
+        loadSettingsFromURL("?" + savedSession);
+        saveSettingsToURL(); // 復元した設定をURLにも反映
+    } else {
+        loadSettingsFromURL();
+    }
     initCanvas(); // その後キャンバスを初期化
     drawCanvas();
     displayHistory();
+    restoreImageFromSession(); // 前回の画像を復元（非同期）
 
     // ローカルフォントAPIの権限状態をチェックして自動ロード（granted時のみ）
     initLocalFontsButton();
@@ -2126,6 +2213,7 @@ clearBtn.addEventListener("click", () => {
         // 画像をクリア
         uploadedImage = null;
         imageUpload.value = "";
+        clearImageFromSession();
 
         // テキストレイヤーをリセット
         textLayers = [createDefaultLayer()];
